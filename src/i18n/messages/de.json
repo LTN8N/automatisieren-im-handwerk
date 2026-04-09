@@ -4,11 +4,11 @@
     "loading": "Wird geladen...",
     "save": "Speichern",
     "cancel": "Abbrechen",
-    "delete": "Loeschen",
+    "delete": "Löschen",
     "edit": "Bearbeiten",
     "create": "Erstellen",
     "search": "Suchen",
-    "back": "Zurueck",
+    "back": "Zurück",
     "yes": "Ja",
     "no": "Nein"
   },
@@ -36,7 +36,16 @@
     "openAngebote": "Offene Angebote",
     "openRechnungen": "Offene Rechnungen",
     "kunden": "Kunden",
-    "umsatzMonat": "Umsatz (Monat)"
+    "umsatzMonat": "Umsatz (Monat)",
+    "trend": "{value} vs. Vormonat",
+    "trendUp": "+{value}%",
+    "trendDown": "{value}%",
+    "quickActions": "Schnellaktionen",
+    "newAngebot": "Neues Angebot",
+    "newKunde": "Neuer Kunde",
+    "openChat": "KI-Chat",
+    "menuOpen": "Menü öffnen",
+    "navigation": "Navigation"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -48,7 +57,7 @@
   },
   "marketing": {
     "heroTitle": "Angebote und Rechnungen per Sprache erstellen",
-    "heroDescription": "KI-gesteuertes Angebots- und Rechnungsmanagement fuer Handwerker. Einfach sprechen — die KI erledigt den Rest.",
+    "heroDescription": "KI-gesteuertes Angebots- und Rechnungsmanagement für Handwerker. Einfach sprechen — die KI erledigt den Rest.",
     "cta": "Jetzt kostenlos starten",
     "loginButton": "Anmelden"
   }

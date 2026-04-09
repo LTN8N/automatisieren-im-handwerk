@@ -36,7 +36,16 @@
     "openAngebote": "Open Quotes",
     "openRechnungen": "Open Invoices",
     "kunden": "Customers",
-    "umsatzMonat": "Revenue (Month)"
+    "umsatzMonat": "Revenue (Month)",
+    "trend": "{value} vs. last month",
+    "trendUp": "+{value}%",
+    "trendDown": "{value}%",
+    "quickActions": "Quick Actions",
+    "newAngebot": "New Quote",
+    "newKunde": "New Customer",
+    "openChat": "AI Chat",
+    "menuOpen": "Open menu",
+    "navigation": "Navigation"
   },
   "nav": {
     "dashboard": "Dashboard",
