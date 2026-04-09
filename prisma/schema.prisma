@@ -1,0 +1,229 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Multi-Tenant ---
+
+model Tenant {
+  id            String   @id @default(cuid())
+  name          String
+  adresse       String?
+  logo          String?
+  steuernummer  String?
+  ustId         String?  @map("ust_id")
+  bankName      String?  @map("bank_name")
+  bankIban      String?  @map("bank_iban")
+  bankBic       String?  @map("bank_bic")
+  ustSatz       Float    @default(19.0) @map("ust_satz")
+  sprache       String   @default("de")
+  waehrung      String   @default("EUR")
+  land          String   @default("DE")
+  emailConfig   Json?    @map("email_config")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  users         User[]
+  kunden        Kunde[]
+  angebote      Angebot[]
+  rechnungen    Rechnung[]
+  chatHistory   ChatHistory[]
+
+  @@map("tenants")
+}
+
+// --- Benutzer ---
+
+enum UserRole {
+  ADMIN
+  MITARBEITER
+}
+
+model User {
+  id            String   @id @default(cuid())
+  tenantId      String   @map("tenant_id")
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  name          String
+  role          UserRole @default(MITARBEITER)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("users")
+}
+
+// --- Kunden ---
+
+model Kunde {
+  id            String   @id @default(cuid())
+  tenantId      String   @map("tenant_id")
+  name          String
+  adresse       String?
+  email         String?
+  telefon       String?
+  notizen       String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  tenant        Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  angebote      Angebot[]
+  rechnungen    Rechnung[]
+
+  @@index([tenantId])
+  @@map("kunden")
+}
+
+// --- Angebote ---
+
+enum AngebotStatus {
+  ENTWURF
+  GESENDET
+  ANGENOMMEN
+  ABGELEHNT
+}
+
+model Angebot {
+  id            String        @id @default(cuid())
+  tenantId      String        @map("tenant_id")
+  kundeId       String        @map("kunde_id")
+  nummer        String
+  status        AngebotStatus @default(ENTWURF)
+  netto         Float         @default(0)
+  ust           Float         @default(0)
+  brutto        Float         @default(0)
+  gueltigBis    DateTime?     @map("gueltig_bis")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  kunde         Kunde         @relation(fields: [kundeId], references: [id], onDelete: Cascade)
+  positionen    AngebotPosition[]
+  historie      AngebotHistorie[]
+  rechnungen    Rechnung[]
+
+  @@unique([tenantId, nummer])
+  @@index([tenantId])
+  @@map("angebote")
+}
+
+model AngebotPosition {
+  id            String   @id @default(cuid())
+  angebotId     String   @map("angebot_id")
+  beschreibung  String
+  menge         Float
+  einheit       String   @default("Stk")
+  einzelpreis   Float
+  gesamtpreis   Float
+  sortierung    Int      @default(0)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  angebot       Angebot  @relation(fields: [angebotId], references: [id], onDelete: Cascade)
+
+  @@map("angebot_positionen")
+}
+
+model AngebotHistorie {
+  id            String   @id @default(cuid())
+  angebotId     String   @map("angebot_id")
+  quelle        String   // "voice" | "chat" | "manuell"
+  wasGeaendert  String   @map("was_geaendert")
+  alterWert     String?  @map("alter_wert")
+  neuerWert     String?  @map("neuer_wert")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  angebot       Angebot  @relation(fields: [angebotId], references: [id], onDelete: Cascade)
+
+  @@map("angebot_historie")
+}
+
+// --- Rechnungen ---
+
+enum RechnungStatus {
+  ENTWURF
+  GESENDET
+  BEZAHLT
+  UEBERFAELLIG
+  MAHNUNG
+}
+
+model Rechnung {
+  id            String         @id @default(cuid())
+  tenantId      String         @map("tenant_id")
+  kundeId       String         @map("kunde_id")
+  angebotId     String?        @map("angebot_id")
+  nummer        String
+  status        RechnungStatus @default(ENTWURF)
+  netto         Float          @default(0)
+  ust           Float          @default(0)
+  brutto        Float          @default(0)
+  zahlungsziel  DateTime?
+  bezahltAm     DateTime?      @map("bezahlt_am")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  kunde         Kunde          @relation(fields: [kundeId], references: [id], onDelete: Cascade)
+  angebot       Angebot?       @relation(fields: [angebotId], references: [id], onDelete: SetNull)
+  positionen    RechnungPosition[]
+  historie      RechnungHistorie[]
+
+  @@unique([tenantId, nummer])
+  @@index([tenantId])
+  @@map("rechnungen")
+}
+
+model RechnungPosition {
+  id            String   @id @default(cuid())
+  rechnungId    String   @map("rechnung_id")
+  beschreibung  String
+  menge         Float
+  einheit       String   @default("Stk")
+  einzelpreis   Float
+  gesamtpreis   Float
+  sortierung    Int      @default(0)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  rechnung      Rechnung @relation(fields: [rechnungId], references: [id], onDelete: Cascade)
+
+  @@map("rechnung_positionen")
+}
+
+model RechnungHistorie {
+  id            String   @id @default(cuid())
+  rechnungId    String   @map("rechnung_id")
+  quelle        String
+  wasGeaendert  String   @map("was_geaendert")
+  alterWert     String?  @map("alter_wert")
+  neuerWert     String?  @map("neuer_wert")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  rechnung      Rechnung @relation(fields: [rechnungId], references: [id], onDelete: Cascade)
+
+  @@map("rechnung_historie")
+}
+
+// --- Chat-History ---
+
+model ChatHistory {
+  id                String   @id @default(cuid())
+  tenantId          String   @map("tenant_id")
+  quelle            String   // "voice" | "text"
+  nachricht         String
+  antwort           String?
+  intent            String?
+  kontext           Json?
+  verknuepfteAktion Json?    @map("verknuepfte_aktion")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("chat_history")
+}

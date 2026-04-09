@@ -1,0 +1,55 @@
+{
+  "common": {
+    "appName": "Automate in Trades",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "back": "Back",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "auth": {
+    "login": "Sign In",
+    "register": "Sign Up",
+    "logout": "Sign Out",
+    "email": "Email",
+    "password": "Password",
+    "name": "Your Name",
+    "companyName": "Company Name",
+    "loginTitle": "Sign In",
+    "loginDescription": "Sign in with your email and password.",
+    "registerTitle": "Sign Up",
+    "registerDescription": "Create your account in seconds.",
+    "noAccount": "No account yet?",
+    "hasAccount": "Already have an account?",
+    "loginError": "Email or password is incorrect.",
+    "registerError": "Registration failed.",
+    "submitting": "Submitting..."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome, {name}",
+    "openAngebote": "Open Quotes",
+    "openRechnungen": "Open Invoices",
+    "kunden": "Customers",
+    "umsatzMonat": "Revenue (Month)"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "angebote": "Quotes",
+    "rechnungen": "Invoices",
+    "kunden": "Customers",
+    "chat": "AI Chat",
+    "einstellungen": "Settings"
+  },
+  "marketing": {
+    "heroTitle": "Create quotes and invoices by voice",
+    "heroDescription": "AI-powered quote and invoice management for tradespeople. Just speak — AI handles the rest.",
+    "cta": "Start for free",
+    "loginButton": "Sign In"
+  }
+}
