@@ -1,0 +1,64 @@
+{
+  "common": {
+    "appName": "Automatisieren im Handwerk",
+    "loading": "Wird geladen...",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "create": "Erstellen",
+    "search": "Suchen",
+    "back": "Zurück",
+    "yes": "Ja",
+    "no": "Nein"
+  },
+  "auth": {
+    "login": "Anmelden",
+    "register": "Registrieren",
+    "logout": "Abmelden",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "name": "Ihr Name",
+    "companyName": "Firmenname",
+    "loginTitle": "Anmelden",
+    "loginDescription": "Melden Sie sich mit Ihrer E-Mail und Ihrem Passwort an.",
+    "registerTitle": "Registrieren",
+    "registerDescription": "Erstellen Sie Ihr Konto in wenigen Sekunden.",
+    "noAccount": "Noch kein Konto?",
+    "hasAccount": "Bereits ein Konto?",
+    "loginError": "E-Mail oder Passwort ist falsch.",
+    "registerError": "Registrierung fehlgeschlagen.",
+    "submitting": "Wird gesendet..."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Willkommen, {name}",
+    "openAngebote": "Offene Angebote",
+    "openRechnungen": "Offene Rechnungen",
+    "kunden": "Kunden",
+    "umsatzMonat": "Umsatz (Monat)",
+    "trend": "{value} vs. Vormonat",
+    "trendUp": "+{value}%",
+    "trendDown": "{value}%",
+    "quickActions": "Schnellaktionen",
+    "newAngebot": "Neues Angebot",
+    "newKunde": "Neuer Kunde",
+    "openChat": "KI-Chat",
+    "menuOpen": "Menü öffnen",
+    "navigation": "Navigation"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "angebote": "Angebote",
+    "rechnungen": "Rechnungen",
+    "kunden": "Kunden",
+    "chat": "KI-Chat",
+    "einstellungen": "Einstellungen"
+  },
+  "marketing": {
+    "heroTitle": "Angebote und Rechnungen per Sprache erstellen",
+    "heroDescription": "KI-gesteuertes Angebots- und Rechnungsmanagement für Handwerker. Einfach sprechen — die KI erledigt den Rest.",
+    "cta": "Jetzt kostenlos starten",
+    "loginButton": "Anmelden"
+  }
+}

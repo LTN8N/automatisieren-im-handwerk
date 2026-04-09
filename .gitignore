@@ -12,3 +12,7 @@ build/
 Thumbs.db
 .claude/
 .paperclip/
+.env.test
+test-results/
+playwright-report/
+blob-report/
