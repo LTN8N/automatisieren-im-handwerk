@@ -1,7 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
-import { hasLocale } from "next-intl";
+import { hasLocale, NextIntlClientProvider } from "next-intl";
+import { getMessages } from "next-intl/server";
 import { locales } from "@/i18n/config";
 
 export default async function LocaleLayout({
@@ -17,5 +18,11 @@ export default async function LocaleLayout({
     notFound();
   }
 
-  return children;
+  const messages = await getMessages();
+
+  return (
+    <NextIntlClientProvider locale={locale} messages={messages}>
+      {children}
+    </NextIntlClientProvider>
+  );
 }
