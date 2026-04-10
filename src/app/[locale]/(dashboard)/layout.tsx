@@ -11,6 +11,7 @@ export default async function DashboardLayout({
 
   if (!session) {
     redirect({ href: "/login", locale: "de" });
+    return null;
   }
 
   return (

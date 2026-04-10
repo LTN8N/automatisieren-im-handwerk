@@ -15,6 +15,7 @@ export default async function EinstellungenPage() {
   const session = await auth();
   if (!session?.user) {
     redirect({ href: "/login", locale: "de" });
+    return null;
   }
 
   const tenantId = (session.user as { tenantId: string }).tenantId;
@@ -23,6 +24,7 @@ export default async function EinstellungenPage() {
   const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
   if (!tenant) {
     redirect({ href: "/login", locale: "de" });
+    return null;
   }
 
   const [angeboteCount, rechnungenCount, letzteAngebotNr, letzteRechnungNr] = await Promise.all([

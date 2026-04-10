@@ -11,6 +11,7 @@ export default async function OnboardingLayout({
 
   if (!session) {
     redirect({ href: "/login", locale: "de" });
+    return null;
   }
 
   return (

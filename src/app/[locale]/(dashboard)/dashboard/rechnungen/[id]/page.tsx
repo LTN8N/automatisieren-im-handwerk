@@ -14,6 +14,7 @@ export default async function RechnungDetailPage({ params }: RechnungDetailPageP
   const session = await auth();
   if (!session?.user?.tenantId) {
     redirect({ href: "/login", locale: "de" });
+    return null;
   }
 
   const { id } = await params;

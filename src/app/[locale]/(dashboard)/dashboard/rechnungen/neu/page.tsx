@@ -9,6 +9,7 @@ export default async function NeueRechnungPage() {
   const session = await auth();
   if (!session?.user?.tenantId) {
     redirect({ href: "/login", locale: "de" });
+    return null;
   }
 
   const db = getTenantDb(session.user.tenantId);

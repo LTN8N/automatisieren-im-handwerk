@@ -18,6 +18,7 @@ export default async function RechnungenPage({ searchParams }: RechnungenPagePro
   const session = await auth();
   if (!session?.user?.tenantId) {
     redirect({ href: "/login", locale: "de" });
+    return null;
   }
 
   const params = await searchParams;
