@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/db"
 
 /**
- * Vergibt die nächste fortlaufende Nummer für ein Dokument (Angebot oder Rechnung).
- * Transaktionssicher via atomarem upsert — keine Lücken (GoBD §146 AO).
+ * Vergibt die naechste fortlaufende Nummer fuer ein Dokument (Angebot oder Rechnung).
+ * Format: AG-YYYY-NNNN / RE-YYYY-NNNN
  */
 export async function naechsteNummer(
   tenantId: string,
@@ -10,15 +10,24 @@ export async function naechsteNummer(
 ): Promise<string> {
   const jahr = new Date().getFullYear()
   const prefix = typ === "ANGEBOT" ? "AG" : "RE"
+  const startsWith = `${prefix}-${jahr}-`
 
-  const result = await prisma.$transaction(async (tx) => {
-    const kreis = await tx.nummernkreis.upsert({
-      where: { tenantId_typ_jahr: { tenantId, typ, jahr } },
-      create: { tenantId, typ, jahr, letzteNummer: 1 },
-      update: { letzteNummer: { increment: 1 } },
+  if (typ === "RECHNUNG") {
+    const letzte = await prisma.rechnung.findFirst({
+      where: { tenantId, nummer: { startsWith } },
+      orderBy: { nummer: "desc" },
+      select: { nummer: true },
     })
-    return kreis.letzteNummer
-  })
+    const nr = letzte ? parseInt(letzte.nummer.split("-")[2] ?? "0", 10) + 1 : 1
+    return `${startsWith}${String(nr).padStart(4, "0")}`
+  }
 
-  return `${prefix}-${jahr}-${String(result).padStart(4, "0")}`
+  // ANGEBOT
+  const letzte = await prisma.angebot.findFirst({
+    where: { tenantId, nummer: { startsWith } },
+    orderBy: { nummer: "desc" },
+    select: { nummer: true },
+  })
+  const nr = letzte ? parseInt(letzte.nummer.split("-")[2] ?? "0", 10) + 1 : 1
+  return `${startsWith}${String(nr).padStart(4, "0")}`
 }
