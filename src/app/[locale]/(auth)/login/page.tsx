@@ -31,6 +31,7 @@ export default function LoginPage() {
       email: formData.get("email") as string,
       password: formData.get("password") as string,
       redirect: false,
+      callbackUrl: "/de/dashboard",
     });
 
     setLoading(false);
@@ -40,7 +41,11 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/dashboard");
+    if (result?.url) {
+      window.location.href = result.url;
+    } else {
+      window.location.href = "/de/dashboard";
+    }
   }
 
   return (
