@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/navigation";
+import { useLocaleRouter } from "@/hooks/use-locale-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
@@ -64,7 +64,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function RechnungDetail({ rechnung }: { rechnung: RechnungData }) {
   const t = useTranslations("rechnungen");
-  const router = useRouter();
+  const router = useLocaleRouter();
   const [updating, setUpdating] = useState(false);
 
   const formatCurrency = (v: number) =>

@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter, useParams } from "next/navigation"
+import { useParams } from "next/navigation"
+import { useLocaleRouter } from "@/hooks/use-locale-router"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Edit, Send, Check, X, Clock, Trash2 } from "lucide-react"
@@ -84,7 +85,7 @@ function formatZeit(datum: string): string {
 
 export default function AngebotDetailPage() {
   const t = useTranslations("angebote")
-  const router = useRouter()
+  const router = useLocaleRouter()
   const params = useParams()
   const angebotId = params?.id as string
 

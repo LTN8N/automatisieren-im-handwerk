@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useLocaleRouter } from "@/hooks/use-locale-router"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -41,7 +41,7 @@ function berechnePosition(pos: Position) {
 export default function AngebotFormular({ angebotId }: AngebotFormularProps) {
   const t = useTranslations("angebote")
   const tCommon = useTranslations("common")
-  const router = useRouter()
+  const router = useLocaleRouter()
 
   const [kundeId, setKundeId] = useState("")
   const [kunden, setKunden] = useState<Kunde[]>([])

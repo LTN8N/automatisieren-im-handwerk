@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
+import { useLocaleRouter } from "@/hooks/use-locale-router"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, Search, ChevronLeft, ChevronRight } from "lucide-react"
@@ -43,7 +43,7 @@ function formatDatum(datum: string): string {
 export default function AngebotListePage() {
   const t = useTranslations("angebote")
   const tCommon = useTranslations("common")
-  const router = useRouter()
+  const router = useLocaleRouter()
 
   const [angebote, setAngebote] = useState<Angebot[]>([])
   const [gesamt, setGesamt] = useState(0)
