@@ -9,9 +9,11 @@ export default async function ChatPage() {
   const session = await auth();
   if (!session?.user?.tenantId) {
     redirect({ href: "/login", locale: "de" });
+    return null;
   }
 
-  const db = getTenantDb(session.user.tenantId);
+  const tenantId = session.user.tenantId;
+  const db = getTenantDb(tenantId);
 
   // Letzte Chat-Eintraege als Verlauf laden
   const history = await db.chatHistory.findMany({

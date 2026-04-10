@@ -18,11 +18,13 @@ export default async function KundenPage({ searchParams }: KundenPageProps) {
   const session = await auth();
   if (!session?.user?.tenantId) {
     redirect({ href: "/login", locale: "de" });
+    return null;
   }
 
+  const tenantId = session.user.tenantId;
   const params = await searchParams;
   const t = await getTranslations("kunden");
-  const db = getTenantDb(session.user.tenantId);
+  const db = getTenantDb(tenantId);
 
   const search = params.search ?? "";
   const page = Math.max(1, Number(params.page ?? "1"));
