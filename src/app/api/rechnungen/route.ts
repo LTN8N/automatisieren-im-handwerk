@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
 
   // Tenant-USt-Satz als Default laden
   const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
-  const defaultUstSatz = tenant?.ustSatz ?? 19;
+  const defaultUstSatz = Number(tenant?.ustSatz ?? 19);
 
   // Berechne Positionen mit korrektem USt-Satz (pro Position oder Tenant-Default)
   const berechnetePositionen = positionen.map((p, idx) => {
