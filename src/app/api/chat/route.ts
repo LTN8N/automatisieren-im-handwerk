@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { auth } from "@/lib/auth";
-import { getTenantDb } from "@/lib/db";
+import { prisma, getTenantDb } from "@/lib/db";
 import { buildSystemPrompt } from "@/lib/ai/prompts";
 import { HANDWERK_TOOLS } from "@/lib/ai/tools";
 import { executeTool } from "@/lib/ai/tool-executor";
@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
 
   const db = getTenantDb(tenantId);
 
-  // Tenant-Infos laden
-  const tenant = await db.tenant.findFirst({ select: { name: true } });
+  // Tenant-Infos laden (prisma statt db, da Tenant kein tenantId hat)
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true } });
 
   // Letzte 10 Nachrichten als Kontext
   const verlauf = await db.chatHistory.findMany({
