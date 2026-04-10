@@ -5,7 +5,7 @@ import { useParams } from "next/navigation"
 import { useLocaleRouter } from "@/hooks/use-locale-router"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Edit, Send, Check, X, Clock, Trash2 } from "lucide-react"
+import { ArrowLeft, Edit, Send, Check, X, Clock, Trash2, Receipt } from "lucide-react"
 
 interface Position {
   id: string
@@ -92,6 +92,7 @@ export default function AngebotDetailPage() {
   const [angebot, setAngebot] = useState<Angebot | null>(null)
   const [loading, setLoading] = useState(true)
   const [statusLoading, setStatusLoading] = useState(false)
+  const [rechnungLoading, setRechnungLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const laden = async () => {
@@ -123,6 +124,24 @@ export default function AngebotDetailPage() {
       setError(data.error)
     }
     setStatusLoading(false)
+  }
+
+  const rechnungErstellen = async () => {
+    if (!confirm("Soll aus diesem Angebot eine Rechnung erstellt werden?")) return
+    setRechnungLoading(true)
+    const res = await fetch(`/api/rechnungen/${angebotId}/aus-angebot`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ zahlungszielTage: 14 }),
+    })
+    if (res.ok) {
+      const rechnung = await res.json()
+      router.push(`/dashboard/rechnungen/${rechnung.id}`)
+    } else {
+      const data = await res.json()
+      setError(data.error || "Rechnung konnte nicht erstellt werden.")
+    }
+    setRechnungLoading(false)
   }
 
   const archivieren = async () => {
@@ -187,6 +206,15 @@ export default function AngebotDetailPage() {
               className="rounded-xl min-h-[48px]"
             >
               <Edit className="mr-2 h-4 w-4" /> {t("bearbeiten")}
+            </Button>
+          )}
+          {angebot.status === "ANGENOMMEN" && (
+            <Button
+              onClick={rechnungErstellen}
+              disabled={rechnungLoading}
+              className="rounded-xl min-h-[48px] font-semibold bg-emerald-500 hover:bg-emerald-600 text-white"
+            >
+              <Receipt className="mr-2 h-4 w-4" /> Rechnung erstellen
             </Button>
           )}
           {uebergaenge.map((u) => {
