@@ -86,7 +86,7 @@ export default function AngebotDetailPage() {
   const t = useTranslations("angebote")
   const router = useRouter()
   const params = useParams()
-  const angebotId = params.id as string
+  const angebotId = params?.id as string
 
   const [angebot, setAngebot] = useState<Angebot | null>(null)
   const [loading, setLoading] = useState(true)
