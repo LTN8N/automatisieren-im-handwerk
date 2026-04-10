@@ -1,10 +1,34 @@
 import { PrismaClient } from "@prisma/client";
 
+const SLOW_QUERY_THRESHOLD_MS = 500;
+
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient();
+function createPrismaClient() {
+  const client = new PrismaClient({
+    log:
+      process.env.NODE_ENV === "development"
+        ? [{ emit: "event", level: "query" }, "warn", "error"]
+        : ["warn", "error"],
+  });
+
+  // Slow query logging: Log queries that take longer than SLOW_QUERY_THRESHOLD_MS
+  if (process.env.NODE_ENV === "development") {
+    client.$on("query", (e) => {
+      if (e.duration >= SLOW_QUERY_THRESHOLD_MS) {
+        console.warn(
+          `[SlowQuery] ${e.duration}ms — ${e.query.substring(0, 200)}`
+        );
+      }
+    });
+  }
+
+  return client;
+}
+
+export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
