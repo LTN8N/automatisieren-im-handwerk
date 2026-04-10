@@ -37,7 +37,7 @@ export function KundenTable({ kunden, pagination, searchQuery }: KundenTableProp
 
   function updateSearch(value: string) {
     setSearch(value);
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
     if (value) {
       params.set("search", value);
     } else {
@@ -48,7 +48,7 @@ export function KundenTable({ kunden, pagination, searchQuery }: KundenTableProp
   }
 
   function goToPage(page: number) {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
     params.set("page", String(page));
     router.push(`?${params.toString()}`);
   }
