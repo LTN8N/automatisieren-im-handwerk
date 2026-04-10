@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  output: "standalone",
+  // output: "standalone", // disabled for local dev, enable for Docker
   serverExternalPackages: [
     "@react-pdf/renderer",
     "@react-pdf/reconciler",
