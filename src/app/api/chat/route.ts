@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { auth } from "@/lib/auth";
 import { getTenantDb } from "@/lib/db";
 import { buildSystemPrompt } from "@/lib/ai/prompts";
 import { HANDWERK_TOOLS } from "@/lib/ai/tools";
+import { executeTool } from "@/lib/ai/tool-executor";
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
-
-export interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
-}
 
 export interface ChatRequest {
   nachricht: string;
@@ -33,40 +29,40 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Ungültige Anfrage" }, { status: 400 });
+    return NextResponse.json({ error: "Ungueltige Anfrage" }, { status: 400 });
   }
 
   const { nachricht, quelle = "text" } = body;
 
   if (!nachricht?.trim()) {
-    return NextResponse.json(
-      { error: "Nachricht darf nicht leer sein" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Nachricht darf nicht leer sein" }, { status: 400 });
   }
 
   const db = getTenantDb(tenantId);
 
   // Tenant-Infos laden
-  const tenant = await db.tenant.findFirst({
-    select: { name: true },
-  });
+  const tenant = await db.tenant.findFirst({ select: { name: true } });
 
-  // Letzte 10 Nachrichten als Gesprächskontext laden
+  // Letzte 10 Nachrichten als Kontext
   const verlauf = await db.chatHistory.findMany({
     orderBy: { createdAt: "desc" },
     take: 10,
-    select: {
-      nachricht: true,
-      antwort: true,
-    },
+    select: { nachricht: true, antwort: true },
   });
 
-  // Älteste zuerst für chronologische Reihenfolge
   const verlaufSorted = verlauf.reverse();
 
-  // Nachrichten für Claude aufbauen
-  const messages: Anthropic.MessageParam[] = [];
+  // Nachrichten fuer OpenAI aufbauen
+  const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    {
+      role: "system",
+      content: buildSystemPrompt({
+        firmenname: tenant?.name ?? "Ihr Betrieb",
+        userName,
+        quelle,
+      }),
+    },
+  ];
 
   for (const eintrag of verlaufSorted) {
     messages.push({ role: "user", content: eintrag.nachricht });
@@ -75,14 +71,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Aktuelle Nutzernachricht
   messages.push({ role: "user", content: nachricht });
-
-  const systemPrompt = buildSystemPrompt({
-    firmenname: tenant?.name ?? "Ihr Betrieb",
-    userName,
-    quelle,
-  });
 
   // SSE-Stream aufbauen
   const stream = new ReadableStream({
@@ -96,37 +85,63 @@ export async function POST(req: NextRequest) {
 
       let vollstaendigeAntwort = "";
       let erkannterIntent: string | null = null;
-      let intentKontext: Record<string, unknown> | null = null;
 
       try {
-        const claudeStream = anthropic.messages.stream({
-          model: "claude-opus-4-6",
-          max_tokens: 1024,
-          system: systemPrompt,
-          tools: HANDWERK_TOOLS,
-          messages,
-        });
+        // Tool-Execution-Loop: max 5 Durchlaeufe
+        let currentMessages = [...messages];
+        const MAX_TOOL_ROUNDS = 5;
 
-        for await (const event of claudeStream) {
-          if (event.type === "content_block_delta") {
-            if (event.delta.type === "text_delta") {
-              const text = event.delta.text;
-              vollstaendigeAntwort += text;
-              sendEvent("delta", { text });
-            }
-          }
-        }
-
-        // Nach dem Stream: finale Nachricht für Tool-Use auswerten
-        const finalMsg = await claudeStream.finalMessage();
-        const toolBlock = finalMsg.content.find((b) => b.type === "tool_use");
-        if (toolBlock && toolBlock.type === "tool_use") {
-          erkannterIntent = toolBlock.name;
-          intentKontext = toolBlock.input as Record<string, unknown>;
-          sendEvent("tool_use", {
-            tool: toolBlock.name,
-            input: toolBlock.input,
+        for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+          const response = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: currentMessages,
+            tools: HANDWERK_TOOLS,
+            tool_choice: "auto",
+            max_tokens: 1024,
           });
+
+          const choice = response.choices[0];
+          const message = choice.message;
+
+          // Wenn Tool-Calls vorhanden: ausfuehren und Ergebnis zurueckgeben
+          if (message.tool_calls && message.tool_calls.length > 0) {
+            // Assistant-Message mit Tool-Calls merken
+            currentMessages.push(message);
+
+            for (const toolCall of message.tool_calls) {
+              const toolName = toolCall.function.name;
+              erkannterIntent = toolName;
+              let toolArgs: Record<string, unknown> = {};
+              try {
+                toolArgs = JSON.parse(toolCall.function.arguments);
+              } catch {
+                toolArgs = {};
+              }
+
+              sendEvent("tool_use", { tool: toolName, input: toolArgs });
+
+              // Tool ausfuehren
+              const result = await executeTool(toolName, toolArgs, tenantId);
+
+              // Tool-Ergebnis zurueck an OpenAI
+              currentMessages.push({
+                role: "tool",
+                tool_call_id: toolCall.id,
+                content: result,
+              });
+            }
+
+            // Naechste Runde — OpenAI verarbeitet die Tool-Ergebnisse
+            continue;
+          }
+
+          // Keine Tool-Calls — finale Textantwort
+          if (message.content) {
+            vollstaendigeAntwort = message.content;
+            sendEvent("delta", { text: message.content });
+          }
+
+          break; // Fertig
         }
 
         sendEvent("done", { vollstaendig: true });
@@ -139,7 +154,6 @@ export async function POST(req: NextRequest) {
             nachricht,
             antwort: vollstaendigeAntwort || null,
             intent: erkannterIntent,
-            kontext: intentKontext ?? undefined,
           },
         });
       } catch (err) {
@@ -148,7 +162,6 @@ export async function POST(req: NextRequest) {
           message: "Das hat leider nicht geklappt. Versuch es nochmal.",
         });
 
-        // Fehler-Eintrag speichern
         await db.chatHistory.create({
           data: {
             tenantId,
