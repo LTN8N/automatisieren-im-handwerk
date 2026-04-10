@@ -1,0 +1,72 @@
+services:
+  app:
+    image: ghcr.io/${GITHUB_REPOSITORY:-automatisieren-im-handwerk/app}:${IMAGE_TAG:-latest}
+    container_name: handwerk-app
+    restart: unless-stopped
+    env_file:
+      - ../.env.production
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - traefik-public
+      - internal
+    labels:
+      # Traefik aktivieren
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
+      # HTTPS Router
+      - "traefik.http.routers.handwerk.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.handwerk.entrypoints=websecure"
+      - "traefik.http.routers.handwerk.tls.certresolver=letsencrypt"
+      # HTTP → HTTPS Redirect
+      - "traefik.http.routers.handwerk-http.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.handwerk-http.entrypoints=web"
+      - "traefik.http.routers.handwerk-http.middlewares=https-redirect"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+      # Service-Port
+      - "traefik.http.services.handwerk.loadbalancer.server.port=3000"
+      # Health-Check für Traefik
+      - "traefik.http.services.handwerk.loadbalancer.healthcheck.path=/api/health"
+      - "traefik.http.services.handwerk.loadbalancer.healthcheck.interval=30s"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: handwerk-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      # Persistentes Named Volume — PFLICHT für GoBD (10-jährige Aufbewahrungspflicht)
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # KEIN ports: — DB nicht ins öffentliche Netz exponieren
+
+volumes:
+  # Named volume — NIEMALS auf tmpfs umstellen (GoBD-Compliance: Daten persistent)
+  postgres_data:
+    driver: local
+
+networks:
+  traefik-public:
+    external: true   # Geteiltes Netzwerk mit n8n + Traefik auf diesem VPS
+  internal:
+    driver: bridge

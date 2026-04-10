@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { renderToBuffer } from "@react-pdf/renderer";
-import { AngebotPdfDocument } from "@/components/angebote/pdf-template";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -44,6 +42,9 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Tenant nicht gefunden." }, { status: 404 });
   }
 
+  const { renderToBuffer } = await import("@react-pdf/renderer");
+  const { AngebotPdfDocument } = await import("@/components/angebote/pdf-template");
+
   const pdfBuffer = await renderToBuffer(
     AngebotPdfDocument({
       tenant,
@@ -58,12 +59,13 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
     })
   );
 
-  return new NextResponse(pdfBuffer, {
+  const uint8 = new Uint8Array(pdfBuffer);
+  return new NextResponse(uint8, {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="Angebot-${angebot.nummer}.pdf"`,
-      "Content-Length": String(pdfBuffer.byteLength),
+      "Content-Length": String(uint8.byteLength),
     },
   });
 }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getTenantDb, prisma } from "@/lib/db";
+import { naechsteNummer } from "@/lib/angebote/nummernkreis";
+import { berechnePosition, berechneDokumentSummen } from "@/lib/angebote/berechnung";
 import { z } from "zod";
 
 const rechnungCreateSchema = z.object({
@@ -13,28 +15,11 @@ const rechnungCreateSchema = z.object({
         menge: z.number().positive(),
         einheit: z.string().default("Stk"),
         einzelpreis: z.number().min(0),
+        ustSatz: z.number().min(0).max(100).optional(),
       })
     )
     .min(1, "Mindestens eine Position erforderlich"),
 });
-
-/** Generiert die naechste Rechnungsnummer fuer den Tenant (RE-YYYY-NNNN) */
-async function naechsteRechnungsnummer(tenantId: string): Promise<string> {
-  const jahr = new Date().getFullYear();
-  const prefix = `RE-${jahr}-`;
-
-  const letzte = await prisma.rechnung.findFirst({
-    where: { tenantId, nummer: { startsWith: prefix } },
-    orderBy: { nummer: "desc" },
-    select: { nummer: true },
-  });
-
-  const naechsteNr = letzte
-    ? parseInt(letzte.nummer.split("-")[2] ?? "0", 10) + 1
-    : 1;
-
-  return `${prefix}${String(naechsteNr).padStart(4, "0")}`;
-}
 
 /** GET /api/rechnungen — Liste mit Filter, Suche, Pagination */
 export async function GET(req: NextRequest) {
@@ -102,7 +87,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const db = getTenantDb(session.user.tenantId);
+  const tenantId = session.user.tenantId;
+  const db = getTenantDb(tenantId);
   const body = await req.json();
   const result = rechnungCreateSchema.safeParse(body);
 
@@ -127,41 +113,50 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const positionenMitPreis = positionen.map((p, idx) => ({
-    beschreibung: p.beschreibung,
-    menge: p.menge,
-    einheit: p.einheit,
-    einzelpreis: p.einzelpreis,
-    gesamtpreis: Math.round(p.menge * p.einzelpreis * 100) / 100,
-    sortierung: idx,
-  }));
+  // Tenant-USt-Satz als Default laden
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+  const defaultUstSatz = tenant?.ustSatz ?? 19;
 
-  const netto = positionenMitPreis.reduce((s, p) => s + p.gesamtpreis, 0);
-  const ust = Math.round(netto * 0.19 * 100) / 100;
-  const brutto = Math.round((netto + ust) * 100) / 100;
+  // Berechne Positionen mit korrektem USt-Satz (pro Position oder Tenant-Default)
+  const berechnetePositionen = positionen.map((p, idx) => {
+    const ustSatz = p.ustSatz ?? defaultUstSatz;
+    const ergebnis = berechnePosition({ menge: p.menge, einzelpreis: p.einzelpreis, ustSatz });
+    return {
+      beschreibung: p.beschreibung,
+      menge: p.menge,
+      einheit: p.einheit,
+      einzelpreis: p.einzelpreis,
+      gesamtpreis: ergebnis.gesamtpreis,
+      ustSatz,
+      ustBetrag: ergebnis.ustBetrag,
+      sortierung: idx,
+    };
+  });
+
+  const summen = berechneDokumentSummen(berechnetePositionen);
 
   const zahlungsziel = new Date();
   zahlungsziel.setDate(zahlungsziel.getDate() + zahlungszielTage);
 
-  const nummer = await naechsteRechnungsnummer(session.user.tenantId);
+  const nummer = await naechsteNummer(tenantId, "RECHNUNG");
 
-  const rechnung = await prisma.rechnung.create({
+  // Tenant-scoped db.rechnung.create statt raw prisma
+  const rechnung = await db.rechnung.create({
     data: {
-      tenantId: session.user.tenantId,
       kundeId,
       nummer,
-      netto,
-      ust,
-      brutto,
+      netto: summen.netto,
+      ust: summen.ust,
+      brutto: summen.brutto,
       zahlungsziel,
       positionen: {
-        create: positionenMitPreis,
+        create: berechnetePositionen,
       },
       historie: {
         create: {
           quelle: "system",
           wasGeaendert: "Rechnung erstellt",
-          neuerWert: `Netto: ${netto.toFixed(2)} EUR`,
+          neuerWert: `Netto: ${summen.netto.toFixed(2)} EUR`,
         },
       },
     },

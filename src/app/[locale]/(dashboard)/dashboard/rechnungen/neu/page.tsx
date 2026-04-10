@@ -1,12 +1,14 @@
+export const dynamic = "force-dynamic";
+
 import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/navigation";
 import { getTenantDb } from "@/lib/db";
 import { RechnungForm } from "@/components/rechnungen/rechnung-form";
 
 export default async function NeueRechnungPage() {
   const session = await auth();
   if (!session?.user?.tenantId) {
-    redirect("/de/login");
+    redirect({ href: "/login", locale: "de" });
   }
 
   const db = getTenantDb(session.user.tenantId);

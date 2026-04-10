@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/i18n/navigation"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -177,7 +177,7 @@ export default function AngebotFormular({ angebotId }: AngebotFormularProps) {
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"
-          onClick={() => router.push("/de/dashboard/angebote")}
+          onClick={() => router.push("/dashboard/angebote")}
           className="rounded-xl min-h-[48px]"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -370,7 +370,7 @@ export default function AngebotFormular({ angebotId }: AngebotFormularProps) {
       <div className="flex gap-3 justify-end">
         <Button
           variant="outline"
-          onClick={() => router.push("/de/dashboard/angebote")}
+          onClick={() => router.push("/dashboard/angebote")}
           className="rounded-xl min-h-[48px]"
         >
           {tCommon("cancel")}

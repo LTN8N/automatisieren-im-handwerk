@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -79,7 +80,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   if (neuerStatus) updateData.status = neuerStatus;
   if (neuerStatus === "BEZAHLT") updateData.bezahltAm = new Date();
 
-  const aktualisiert = await prisma.$transaction(async (tx) => {
+  const aktualisiert = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     if (neuerStatus) {
       await tx.rechnungHistorie.create({
         data: {

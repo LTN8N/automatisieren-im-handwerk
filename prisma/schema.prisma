@@ -19,7 +19,7 @@ model Tenant {
   bankName      String?  @map("bank_name")
   bankIban      String?  @map("bank_iban")
   bankBic       String?  @map("bank_bic")
-  ustSatz           Float    @default(19.0) @map("ust_satz")
+  ustSatz           Decimal  @default(19.0) @map("ust_satz") @db.Decimal(5, 2)
   zahlungszielTage  Int      @default(14) @map("zahlungsziel_tage")
   sprache           String   @default("de")
   waehrung          String   @default("EUR")
@@ -99,9 +99,9 @@ model Angebot {
   kundeId       String        @map("kunde_id")
   nummer        String
   status        AngebotStatus @default(ENTWURF)
-  netto         Float         @default(0)
-  ust           Float         @default(0)
-  brutto        Float         @default(0)
+  netto         Decimal       @default(0) @db.Decimal(10, 2)
+  ust           Decimal       @default(0) @db.Decimal(10, 2)
+  brutto        Decimal       @default(0) @db.Decimal(10, 2)
   gueltigBis    DateTime?     @map("gueltig_bis")
   archiviertAm  DateTime?     @map("archiviert_am")
   createdAt     DateTime      @default(now()) @map("created_at")
@@ -115,6 +115,7 @@ model Angebot {
 
   @@unique([tenantId, nummer])
   @@index([tenantId])
+  @@index([status])
   @@map("angebote")
 }
 
@@ -122,12 +123,12 @@ model AngebotPosition {
   id            String   @id @default(cuid())
   angebotId     String   @map("angebot_id")
   beschreibung  String
-  menge         Float
+  menge         Decimal  @db.Decimal(10, 4)
   einheit       String   @default("Stk")
-  einzelpreis   Float
-  gesamtpreis   Float
-  ustSatz       Float    @default(19.0) @map("ust_satz")
-  ustBetrag     Float    @default(0) @map("ust_betrag")
+  einzelpreis   Decimal  @db.Decimal(10, 2)
+  gesamtpreis   Decimal  @db.Decimal(10, 2)
+  ustSatz       Decimal  @default(19.0) @map("ust_satz") @db.Decimal(5, 2)
+  ustBetrag     Decimal  @default(0) @map("ust_betrag") @db.Decimal(10, 2)
   sortierung    Int      @default(0)
   createdAt     DateTime @default(now()) @map("created_at")
 
@@ -167,9 +168,9 @@ model Rechnung {
   angebotId     String?        @map("angebot_id")
   nummer        String
   status        RechnungStatus @default(ENTWURF)
-  netto         Float          @default(0)
-  ust           Float          @default(0)
-  brutto        Float          @default(0)
+  netto         Decimal        @default(0) @db.Decimal(10, 2)
+  ust           Decimal        @default(0) @db.Decimal(10, 2)
+  brutto        Decimal        @default(0) @db.Decimal(10, 2)
   zahlungsziel  DateTime?
   bezahltAm     DateTime?      @map("bezahlt_am")
   leistungVon   DateTime?      @map("leistung_von")
@@ -187,6 +188,7 @@ model Rechnung {
 
   @@unique([tenantId, nummer])
   @@index([tenantId])
+  @@index([status])
   @@map("rechnungen")
 }
 
@@ -194,12 +196,12 @@ model RechnungPosition {
   id            String   @id @default(cuid())
   rechnungId    String   @map("rechnung_id")
   beschreibung  String
-  menge         Float
+  menge         Decimal  @db.Decimal(10, 4)
   einheit       String   @default("Stk")
-  einzelpreis   Float
-  gesamtpreis   Float
-  ustSatz       Float    @default(19.0) @map("ust_satz")
-  ustBetrag     Float    @default(0) @map("ust_betrag")
+  einzelpreis   Decimal  @db.Decimal(10, 2)
+  gesamtpreis   Decimal  @db.Decimal(10, 2)
+  ustSatz       Decimal  @default(19.0) @map("ust_satz") @db.Decimal(5, 2)
+  ustBetrag     Decimal  @default(0) @map("ust_betrag") @db.Decimal(10, 2)
   sortierung    Int      @default(0)
   createdAt     DateTime @default(now()) @map("created_at")
 

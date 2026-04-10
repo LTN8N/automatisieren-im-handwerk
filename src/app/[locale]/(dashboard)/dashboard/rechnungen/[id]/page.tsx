@@ -1,5 +1,8 @@
+export const dynamic = "force-dynamic";
+
 import { auth } from "@/lib/auth";
-import { redirect, notFound } from "next/navigation";
+import { redirect } from "@/i18n/navigation";
+import { notFound } from "next/navigation";
 import { getTenantDb } from "@/lib/db";
 import { RechnungDetail } from "@/components/rechnungen/rechnung-detail";
 
@@ -10,7 +13,7 @@ interface RechnungDetailPageProps {
 export default async function RechnungDetailPage({ params }: RechnungDetailPageProps) {
   const session = await auth();
   if (!session?.user?.tenantId) {
-    redirect("/de/login");
+    redirect({ href: "/login", locale: "de" });
   }
 
   const { id } = await params;

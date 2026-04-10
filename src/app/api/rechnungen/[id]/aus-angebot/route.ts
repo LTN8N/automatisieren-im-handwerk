@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { naechsteNummer } from "@/lib/angebote/nummernkreis";
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   const zahlungsziel = new Date();
   zahlungsziel.setDate(zahlungsziel.getDate() + zahlungszielTage);
 
-  const rechnung = await prisma.$transaction(async (tx) => {
+  const rechnung = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const neueRechnung = await tx.rechnung.create({
       data: {
         tenantId: session.user.tenantId,
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         brutto: angebot.brutto,
         zahlungsziel,
         positionen: {
-          create: angebot.positionen.map((p) => ({
+          create: angebot.positionen.map((p: { beschreibung: string; menge: number; einheit: string; einzelpreis: number; gesamtpreis: number; ustSatz: number; ustBetrag: number; sortierung: number }) => ({
             beschreibung: p.beschreibung,
             menge: p.menge,
             einheit: p.einheit,

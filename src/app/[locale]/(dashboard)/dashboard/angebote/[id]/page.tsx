@@ -1,7 +1,10 @@
 "use client"
 
+export const dynamic = "force-dynamic"
+
 import { useState, useEffect } from "react"
-import { useRouter, useParams } from "next/navigation"
+import { useRouter } from "@/i18n/navigation"
+import { useParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Edit, Send, Check, X, Clock, Trash2 } from "lucide-react"
@@ -128,7 +131,7 @@ export default function AngebotDetailPage() {
     if (!confirm(t("archivierenBestaetigung"))) return
     const res = await fetch(`/api/angebote/${angebotId}`, { method: "DELETE" })
     if (res.ok) {
-      router.push("/de/dashboard/angebote")
+      router.push("/dashboard/angebote")
     }
   }
 
@@ -143,7 +146,7 @@ export default function AngebotDetailPage() {
   if (error || !angebot) {
     return (
       <div className="space-y-4">
-        <Button variant="ghost" onClick={() => router.push("/de/dashboard/angebote")} className="rounded-xl">
+        <Button variant="ghost" onClick={() => router.push("/dashboard/angebote")} className="rounded-xl">
           <ArrowLeft className="mr-2 h-5 w-5" /> {t("zurueckZurListe")}
         </Button>
         <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
@@ -162,7 +165,7 @@ export default function AngebotDetailPage() {
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
-            onClick={() => router.push("/de/dashboard/angebote")}
+            onClick={() => router.push("/dashboard/angebote")}
             className="rounded-xl min-h-[48px]"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -181,7 +184,7 @@ export default function AngebotDetailPage() {
         <div className="flex flex-wrap gap-2">
           {angebot.status === "ENTWURF" && (
             <Button
-              onClick={() => router.push(`/de/dashboard/angebote/${angebotId}?bearbeiten=true`)}
+              onClick={() => router.push(`/dashboard/angebote/${angebotId}?bearbeiten=true`)}
               variant="outline"
               className="rounded-xl min-h-[48px]"
             >

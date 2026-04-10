@@ -1,9 +1,11 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useRouter } from "@/i18n/navigation";
+import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,7 +42,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/de/dashboard");
+    router.push("/dashboard");
   }
 
   return (
@@ -82,7 +84,7 @@ export default function LoginPage() {
           </Button>
           <p className="text-center text-sm text-zinc-500">
             Noch kein Konto?{" "}
-            <Link href="/de/register" className="font-medium underline">
+            <Link href="/register" className="font-medium underline">
               Registrieren
             </Link>
           </p>

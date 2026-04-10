@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/navigation";
 import { DesktopSidebar, MobileSidebar } from "@/components/dashboard/sidebar";
 
 export default async function DashboardLayout({
@@ -10,7 +10,7 @@ export default async function DashboardLayout({
   const session = await auth();
 
   if (!session) {
-    redirect("/de/login");
+    redirect({ href: "/login", locale: "de" });
   }
 
   return (

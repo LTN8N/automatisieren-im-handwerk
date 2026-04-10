@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
-import { getTenantDb, prisma } from "@/lib/db"
+import { getTenantDb } from "@/lib/db"
 import { naechsteNummer } from "@/lib/angebote/nummernkreis"
 import { berechnePosition, berechneDokumentSummen } from "@/lib/angebote/berechnung"
 
 /** GET /api/angebote — Liste aller Angebote mit Filter, Suche, Pagination */
 export async function GET(request: NextRequest) {
   const session = await auth()
-  const tenantId = (session?.user as { tenantId?: string })?.tenantId
-  if (!tenantId) {
+  if (!session?.user?.tenantId) {
     return NextResponse.json({ error: "Nicht authentifiziert." }, { status: 401 })
   }
 
+  const tenantId = session.user.tenantId
   const { searchParams } = new URL(request.url)
   const status = searchParams.get("status")
   const suche = searchParams.get("suche")
@@ -57,19 +57,26 @@ export async function GET(request: NextRequest) {
 /** POST /api/angebote — Neues Angebot erstellen */
 export async function POST(request: NextRequest) {
   const session = await auth()
-  const tenantId = (session?.user as { tenantId?: string })?.tenantId
-  if (!tenantId) {
+  if (!session?.user?.tenantId) {
     return NextResponse.json({ error: "Nicht authentifiziert." }, { status: 401 })
   }
 
+  const tenantId = session.user.tenantId
+  const db = getTenantDb(tenantId)
   const body = await request.json()
-  const { kundeId, betreff, einleitung, schlussbemerkung, gueltigBis, positionen } = body
+  const { kundeId, gueltigBis, positionen } = body
 
   if (!kundeId) {
     return NextResponse.json({ error: "Kunde ist erforderlich." }, { status: 400 })
   }
   if (!positionen || positionen.length === 0) {
     return NextResponse.json({ error: "Mindestens eine Position erforderlich." }, { status: 400 })
+  }
+
+  // Kunde muss dem Tenant gehoeren (db ist tenant-scoped)
+  const kunde = await db.kunde.findFirst({ where: { id: kundeId } })
+  if (!kunde) {
+    return NextResponse.json({ error: "Kunde nicht gefunden." }, { status: 404 })
   }
 
   const nummer = await naechsteNummer(tenantId, "ANGEBOT")
@@ -98,9 +105,9 @@ export async function POST(request: NextRequest) {
     ? new Date(gueltigBis)
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
 
-  const angebot = await prisma.angebot.create({
+  // Tenant-scoped db.angebot.create statt raw prisma
+  const angebot = await db.angebot.create({
     data: {
-      tenantId,
       kundeId,
       nummer,
       status: "ENTWURF",

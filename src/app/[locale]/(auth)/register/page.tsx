@@ -1,8 +1,9 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useRouter, Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,7 +46,7 @@ export default function RegisterPage() {
       return;
     }
 
-    router.push("/de/login");
+    router.push("/login");
   }
 
   return (
@@ -108,7 +109,7 @@ export default function RegisterPage() {
           </Button>
           <p className="text-center text-sm text-zinc-500">
             Bereits ein Konto?{" "}
-            <Link href="/de/login" className="font-medium underline">
+            <Link href="/login" className="font-medium underline">
               Anmelden
             </Link>
           </p>

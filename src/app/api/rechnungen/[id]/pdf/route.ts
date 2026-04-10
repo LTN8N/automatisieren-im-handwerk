@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { renderToBuffer } from "@react-pdf/renderer";
-import { RechnungPdfDocument } from "@/components/rechnungen/pdf-template";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -45,6 +43,9 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Tenant nicht gefunden." }, { status: 404 });
   }
 
+  const { renderToBuffer } = await import("@react-pdf/renderer");
+  const { RechnungPdfDocument } = await import("@/components/rechnungen/pdf-template");
+
   const pdfBuffer = await renderToBuffer(
     RechnungPdfDocument({
       tenant,
@@ -60,12 +61,13 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
     })
   );
 
-  return new NextResponse(pdfBuffer, {
+  const uint8 = new Uint8Array(pdfBuffer);
+  return new NextResponse(uint8, {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="Rechnung-${rechnung.nummer}.pdf"`,
-      "Content-Length": String(pdfBuffer.byteLength),
+      "Content-Length": String(uint8.byteLength),
     },
   });
 }

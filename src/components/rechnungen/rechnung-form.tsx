@@ -104,7 +104,7 @@ export function RechnungForm({ kunden }: Props) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="kunde">Kunde *</Label>
-          <Select value={kundeId} onValueChange={setKundeId}>
+          <Select value={kundeId} onValueChange={(value) => setKundeId(value ?? "")}>
             <SelectTrigger id="kunde">
               <SelectValue placeholder="Kunde auswählen..." />
             </SelectTrigger>
@@ -170,7 +170,7 @@ export function RechnungForm({ kunden }: Props) {
               />
               <Select
                 value={p.einheit}
-                onValueChange={(v) => updatePosition(idx, "einheit", v)}
+                onValueChange={(v) => updatePosition(idx, "einheit", v ?? "")}
               >
                 <SelectTrigger className="col-span-2 h-9">
                   <SelectValue />

@@ -1,7 +1,9 @@
 "use client"
 
+export const dynamic = "force-dynamic"
+
 import { useState, useEffect, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/i18n/navigation"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -87,7 +89,7 @@ export default function AngebotListePage() {
           <p className="text-sm text-slate-500">{t("subtitle", { count: gesamt })}</p>
         </div>
         <Button
-          onClick={() => router.push("/de/dashboard/angebote/neu")}
+          onClick={() => router.push("/dashboard/angebote/neu")}
           className="bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl px-6 py-3 min-h-[48px]"
         >
           <Plus className="mr-2 h-5 w-5" />
@@ -153,7 +155,7 @@ export default function AngebotListePage() {
               angebote.map((a) => (
                 <tr
                   key={a.id}
-                  onClick={() => router.push(`/de/dashboard/angebote/${a.id}`)}
+                  onClick={() => router.push(`/dashboard/angebote/${a.id}`)}
                   className="cursor-pointer border-b last:border-0 hover:bg-slate-50 transition-colors"
                 >
                   <td className="px-4 py-3 font-mono text-sm font-medium">{a.nummer}</td>

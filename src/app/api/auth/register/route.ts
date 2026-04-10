@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 const registerSchema = z.object({
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
 
   const result = registerSchema.safeParse(body);
   if (!result.success) {
-    const firstError = result.error.errors[0];
+    const firstError = result.error.issues[0];
     return NextResponse.json(
       { error: firstError?.message ?? "Ungültige Eingabe." },
       { status: 400 },
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
   const passwordHash = await hash(password, 12);
 
   // Tenant + User atomisch in einer Transaktion erstellen
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const tenant = await tx.tenant.create({
       data: {
         name: firmenname,

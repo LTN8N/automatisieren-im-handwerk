@@ -1,4 +1,6 @@
-import Link from "next/link";
+export const dynamic = "force-dynamic";
+
+import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 
 export default function MarketingPage() {
@@ -8,10 +10,10 @@ export default function MarketingPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <h1 className="text-xl font-bold">Automatisieren im Handwerk</h1>
           <div className="flex gap-3">
-            <Link href="/de/login">
+            <Link href="/login">
               <Button variant="outline">Anmelden</Button>
             </Link>
-            <Link href="/de/register">
+            <Link href="/register">
               <Button>Kostenlos starten</Button>
             </Link>
           </div>
@@ -25,7 +27,7 @@ export default function MarketingPage() {
           KI-gesteuertes Angebots- und Rechnungsmanagement fuer Handwerker.
           Einfach sprechen — die KI erledigt den Rest.
         </p>
-        <Link href="/de/register">
+        <Link href="/register">
           <Button size="lg">Jetzt kostenlos starten</Button>
         </Link>
       </main>

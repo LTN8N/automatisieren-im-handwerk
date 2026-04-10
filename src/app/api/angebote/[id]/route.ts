@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { Prisma } from "@prisma/client"
 import { berechnePosition, berechneDokumentSummen } from "@/lib/angebote/berechnung"
 
 type RouteParams = { params: Promise<{ id: string }> }
@@ -84,7 +85,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   const summen = berechneDokumentSummen(berechnetePositionen)
 
   // Transaktion: Update + Historie + Positionen ersetzen
-  const angebot = await prisma.$transaction(async (tx) => {
+  const angebot = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Änderungshistorie bei bereits gesendeten Angeboten
     if (istGesendetOderSpaeter) {
       const aenderungen: Array<{ wasGeaendert: string; alterWert: string; neuerWert: string }> = []
@@ -164,7 +165,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     )
   }
 
-  const aktualisiert = await prisma.$transaction(async (tx) => {
+  const aktualisiert = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Änderungshistorie
     await tx.angebotHistorie.create({
       data: {
