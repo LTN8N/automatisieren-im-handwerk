@@ -105,9 +105,10 @@ export async function POST(request: NextRequest) {
     ? new Date(gueltigBis)
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
 
-  // Tenant-scoped db.angebot.create statt raw prisma
+  // Tenant-scoped db.angebot.create
   const angebot = await db.angebot.create({
     data: {
+      tenantId,
       kundeId,
       nummer,
       status: "ENTWURF",

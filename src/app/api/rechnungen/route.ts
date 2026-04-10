@@ -140,9 +140,10 @@ export async function POST(req: NextRequest) {
 
   const nummer = await naechsteNummer(tenantId, "RECHNUNG");
 
-  // Tenant-scoped db.rechnung.create statt raw prisma
+  // Tenant-scoped db.rechnung.create
   const rechnung = await db.rechnung.create({
     data: {
+      tenantId,
       kundeId,
       nummer,
       netto: summen.netto,
