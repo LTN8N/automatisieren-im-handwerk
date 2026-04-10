@@ -109,11 +109,13 @@ export async function POST(req: NextRequest) {
             currentMessages.push(message);
 
             for (const toolCall of message.tool_calls) {
-              const toolName = toolCall.function.name;
+              if (toolCall.type !== "function") continue;
+              const fn = toolCall.function;
+              const toolName = fn.name;
               erkannterIntent = toolName;
               let toolArgs: Record<string, unknown> = {};
               try {
-                toolArgs = JSON.parse(toolCall.function.arguments);
+                toolArgs = JSON.parse(fn.arguments);
               } catch {
                 toolArgs = {};
               }
