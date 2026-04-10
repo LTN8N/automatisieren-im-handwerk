@@ -93,10 +93,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       if (kundeId && kundeId !== bestehendes.kundeId) {
         aenderungen.push({ wasGeaendert: "kundeId", alterWert: bestehendes.kundeId, neuerWert: kundeId })
       }
-      if (summen.netto !== bestehendes.netto) {
+      if (summen.netto !== Number(bestehendes.netto)) {
         aenderungen.push({ wasGeaendert: "netto", alterWert: String(bestehendes.netto), neuerWert: String(summen.netto) })
       }
-      if (summen.brutto !== bestehendes.brutto) {
+      if (summen.brutto !== Number(bestehendes.brutto)) {
         aenderungen.push({ wasGeaendert: "brutto", alterWert: String(bestehendes.brutto), neuerWert: String(summen.brutto) })
       }
 

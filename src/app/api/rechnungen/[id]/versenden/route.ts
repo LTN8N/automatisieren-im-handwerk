@@ -61,10 +61,10 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
       nummer: rechnung.nummer,
       createdAt: rechnung.createdAt.toISOString(),
       zahlungsziel: rechnung.zahlungsziel?.toISOString() ?? null,
-      netto: rechnung.netto,
-      ust: rechnung.ust,
-      brutto: rechnung.brutto,
-      positionen: rechnung.positionen,
+      netto: Number(rechnung.netto),
+      ust: Number(rechnung.ust),
+      brutto: Number(rechnung.brutto),
+      positionen: rechnung.positionen.map((p) => ({ ...p, menge: Number(p.menge), einzelpreis: Number(p.einzelpreis), gesamtpreis: Number(p.gesamtpreis), ustSatz: Number(p.ustSatz), ustBetrag: Number(p.ustBetrag) })),
       angebotNummer: rechnung.angebot?.nummer ?? null,
     })
   );
@@ -79,7 +79,7 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
     subject: `Rechnung ${rechnung.nummer} von ${tenant.name}`,
     html: `
       <p>Sehr geehrte Damen und Herren,</p>
-      <p>anbei erhalten Sie unsere Rechnung <strong>${rechnung.nummer}</strong> über <strong>${rechnung.brutto.toLocaleString("de-DE", { minimumFractionDigits: 2 })} EUR</strong>.</p>
+      <p>anbei erhalten Sie unsere Rechnung <strong>${rechnung.nummer}</strong> über <strong>${Number(rechnung.brutto).toLocaleString("de-DE", { minimumFractionDigits: 2 })} EUR</strong>.</p>
       ${zahlungszielText}
       ${tenant.bankIban ? `<p>IBAN: ${tenant.bankIban}${tenant.bankBic ? ` | BIC: ${tenant.bankBic}` : ""}${tenant.bankName ? ` | Bank: ${tenant.bankName}` : ""}</p>` : ""}
       <p>Verwendungszweck: ${rechnung.nummer}</p>

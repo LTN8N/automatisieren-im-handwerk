@@ -57,11 +57,11 @@ async function getStats(tenantId: string): Promise<StatsData> {
   ]);
 
   const umsatzMonat = bezahlteRechnungenMonat.reduce(
-    (sum: number, r: { brutto: number }) => sum + r.brutto,
+    (sum: number, r) => sum + Number(r.brutto),
     0
   );
   const umsatzVormonat = bezahlteRechnungenVormonat.reduce(
-    (sum: number, r: { brutto: number }) => sum + r.brutto,
+    (sum: number, r) => sum + Number(r.brutto),
     0
   );
 

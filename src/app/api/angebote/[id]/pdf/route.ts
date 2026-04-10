@@ -52,10 +52,10 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
       nummer: angebot.nummer,
       createdAt: angebot.createdAt.toISOString(),
       gueltigBis: angebot.gueltigBis?.toISOString() ?? null,
-      netto: angebot.netto,
-      ust: angebot.ust,
-      brutto: angebot.brutto,
-      positionen: angebot.positionen,
+      netto: Number(angebot.netto),
+      ust: Number(angebot.ust),
+      brutto: Number(angebot.brutto),
+      positionen: angebot.positionen.map((p) => ({ ...p, menge: Number(p.menge), einzelpreis: Number(p.einzelpreis), gesamtpreis: Number(p.gesamtpreis), ustSatz: Number(p.ustSatz), ustBetrag: Number(p.ustBetrag) })),
     })
   );
 
