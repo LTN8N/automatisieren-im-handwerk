@@ -60,7 +60,7 @@ export default async function EinstellungenPage() {
       from: string;
       secure: boolean;
     } | null,
-    ustSatz: tenant.ustSatz,
+    ustSatz: Number(tenant.ustSatz),
     land: (tenant.land ?? "DE") as "DE" | "AT" | "CH",
     waehrung: tenant.waehrung,
     sprache: tenant.sprache,
