@@ -9,10 +9,12 @@
     "lint": "eslint",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:unit": "vitest run tests/unit",
+    "test:coverage": "vitest run tests/unit --coverage",
     "test:db:up": "docker compose -f docker/docker-compose.test.yml up -d",
     "test:db:down": "docker compose -f docker/docker-compose.test.yml down",
     "test:setup": "pnpm test:db:up && pnpm prisma db push --skip-generate",
-    "test:ci": "pnpm prisma db push --skip-generate && playwright test"
+    "test:ci": "pnpm prisma db push --skip-generate && vitest run tests/unit && playwright test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.87.0",
@@ -25,6 +27,7 @@
     "next": "15.5.15",
     "next-auth": "5.0.0-beta.30",
     "next-intl": "^4.9.0",
+    "openai": "^6.34.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "tailwind-merge": "^3.5.0",
@@ -37,10 +40,12 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^2.0.0",
     "eslint": "^9",
     "eslint-config-next": "15.5.15",
     "prisma": "^6.19.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^2.0.0"
   }
 }

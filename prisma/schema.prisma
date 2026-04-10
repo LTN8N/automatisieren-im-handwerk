@@ -19,18 +19,20 @@ model Tenant {
   bankName      String?  @map("bank_name")
   bankIban      String?  @map("bank_iban")
   bankBic       String?  @map("bank_bic")
-  ustSatz       Float    @default(19.0) @map("ust_satz")
-  sprache       String   @default("de")
-  waehrung      String   @default("EUR")
-  land          String   @default("DE")
-  emailConfig   Json?    @map("email_config")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  ustSatz           Float    @default(19.0) @map("ust_satz")
+  zahlungszielTage  Int      @default(14) @map("zahlungsziel_tage")
+  sprache           String   @default("de")
+  waehrung          String   @default("EUR")
+  land              String   @default("DE")
+  emailConfig       Json?    @map("email_config")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
   users         User[]
   kunden        Kunde[]
   angebote      Angebot[]
   rechnungen    Rechnung[]
+  nummernkreise Nummernkreis[]
   chatHistory   ChatHistory[]
 
   @@map("tenants")
@@ -68,6 +70,8 @@ model Kunde {
   adresse       String?
   email         String?
   telefon       String?
+  ustId         String?  @map("ust_id")
+  steuernummer  String?
   notizen       String?
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
@@ -99,6 +103,7 @@ model Angebot {
   ust           Float         @default(0)
   brutto        Float         @default(0)
   gueltigBis    DateTime?     @map("gueltig_bis")
+  archiviertAm  DateTime?     @map("archiviert_am")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
@@ -121,6 +126,8 @@ model AngebotPosition {
   einheit       String   @default("Stk")
   einzelpreis   Float
   gesamtpreis   Float
+  ustSatz       Float    @default(19.0) @map("ust_satz")
+  ustBetrag     Float    @default(0) @map("ust_betrag")
   sortierung    Int      @default(0)
   createdAt     DateTime @default(now()) @map("created_at")
 
@@ -165,6 +172,10 @@ model Rechnung {
   brutto        Float          @default(0)
   zahlungsziel  DateTime?
   bezahltAm     DateTime?      @map("bezahlt_am")
+  leistungVon   DateTime?      @map("leistung_von")
+  leistungBis   DateTime?      @map("leistung_bis")
+  gesperrt      Boolean        @default(false)
+  archiviertAm  DateTime?      @map("archiviert_am")
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
 
@@ -187,6 +198,8 @@ model RechnungPosition {
   einheit       String   @default("Stk")
   einzelpreis   Float
   gesamtpreis   Float
+  ustSatz       Float    @default(19.0) @map("ust_satz")
+  ustBetrag     Float    @default(0) @map("ust_betrag")
   sortierung    Int      @default(0)
   createdAt     DateTime @default(now()) @map("created_at")
 
@@ -207,6 +220,23 @@ model RechnungHistorie {
   rechnung      Rechnung @relation(fields: [rechnungId], references: [id], onDelete: Cascade)
 
   @@map("rechnung_historie")
+}
+
+// --- Nummernkreise ---
+
+model Nummernkreis {
+  id            String   @id @default(cuid())
+  tenantId      String   @map("tenant_id")
+  typ           String   // "ANGEBOT" | "RECHNUNG"
+  jahr          Int
+  letzteNummer  Int      @default(0) @map("letzte_nummer")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, typ, jahr])
+  @@index([tenantId])
+  @@map("nummernkreise")
 }
 
 // --- Chat-History ---
