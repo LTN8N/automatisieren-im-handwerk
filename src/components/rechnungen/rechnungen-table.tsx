@@ -62,7 +62,7 @@ export function RechnungenTable({ rechnungen, pagination, searchQuery, statusFil
 
   const updateParams = useCallback(
     (updates: Record<string, string>) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(searchParams?.toString() ?? "");
       for (const [key, value] of Object.entries(updates)) {
         if (value) { params.set(key, value); } else { params.delete(key); }
       }
