@@ -28,12 +28,16 @@ model Tenant {
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 
-  users         User[]
-  kunden        Kunde[]
-  angebote      Angebot[]
-  rechnungen    Rechnung[]
-  nummernkreise Nummernkreis[]
-  chatHistory   ChatHistory[]
+  users                User[]
+  kunden               Kunde[]
+  angebote             Angebot[]
+  rechnungen           Rechnung[]
+  nummernkreise        Nummernkreis[]
+  chatHistory          ChatHistory[]
+  maintenanceObjects   MaintenanceObject[]
+  maintenanceContracts MaintenanceContract[]
+  technicians          Technician[]
+  annualPlans          AnnualPlan[]
 
   @@map("tenants")
 }
@@ -258,4 +262,144 @@ model ChatHistory {
 
   @@index([tenantId])
   @@map("chat_history")
+}
+
+// --- Wartungsmanager ---
+
+enum ContractStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum PlanStatus {
+  DRAFT
+  RELEASED
+  EXECUTING
+  COMPLETED
+}
+
+enum EntryStatus {
+  PLANNED
+  MANUALLY_ADJUSTED
+  DONE
+  CANCELLED
+}
+
+model MaintenanceObject {
+  id           String   @id @default(cuid())
+  tenantId     String   @map("tenant_id")
+  name         String
+  address      String
+  city         String
+  postalCode   String   @map("postal_code")
+  buildingType String   @map("building_type")
+  contactName  String?  @map("contact_name")
+  contactPhone String?  @map("contact_phone")
+  accessNotes  String?  @map("access_notes")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  contracts    MaintenanceContract[]
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("maintenance_objects")
+}
+
+model MaintenanceContract {
+  id             String         @id @default(cuid())
+  tenantId       String         @map("tenant_id")
+  objectId       String         @map("object_id")
+  contractNumber String?        @map("contract_number")
+  customerName   String         @map("customer_name")
+  startDate      DateTime       @map("start_date")
+  endDate        DateTime?      @map("end_date")
+  autoRenew      Boolean        @default(false) @map("auto_renew")
+  notes          String?
+  status         ContractStatus @default(ACTIVE)
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  leases         MaintenanceLease[]
+  object         MaintenanceObject @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  tenant         Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([objectId])
+  @@map("maintenance_contracts")
+}
+
+model MaintenanceLease {
+  id                    String   @id @default(cuid())
+  contractId            String   @map("contract_id")
+  serviceType           String   @map("service_type")
+  intervalMonths        Int      @map("interval_months")
+  estimatedHours        Float    @map("estimated_hours")
+  qualificationRequired String?  @map("qualification_required")
+  seasonalPreference    String?  @map("seasonal_preference")
+  legalBasis            String?  @map("legal_basis")
+  legalDeadline         String?  @map("legal_deadline")
+
+  planEntries AnnualPlanEntry[]
+  contract    MaintenanceContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+  @@map("maintenance_leases")
+}
+
+model Technician {
+  id             String   @id @default(cuid())
+  tenantId       String   @map("tenant_id")
+  name           String
+  qualifications String[]
+  workHoursStart String   @default("07:00") @map("work_hours_start")
+  workHoursEnd   String   @default("16:00") @map("work_hours_end")
+  maxDailyHours  Float    @default(8.0) @map("max_daily_hours")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  planEntries AnnualPlanEntry[]
+  tenant      Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("technicians")
+}
+
+model AnnualPlan {
+  id        String     @id @default(cuid())
+  tenantId  String     @map("tenant_id")
+  year      Int
+  status    PlanStatus @default(DRAFT)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  entries AnnualPlanEntry[]
+  tenant  Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, year])
+  @@index([tenantId])
+  @@map("annual_plans")
+}
+
+model AnnualPlanEntry {
+  id              String      @id @default(cuid())
+  planId          String      @map("plan_id")
+  leaseId         String      @map("lease_id")
+  technicianId    String      @map("technician_id")
+  scheduledDate   DateTime    @map("scheduled_date")
+  estimatedHours  Float       @map("estimated_hours")
+  status          EntryStatus @default(PLANNED)
+  conflictStatus  String?     @map("conflict_status")
+  conflictDetails String?     @map("conflict_details")
+  aiReasoning     String?     @map("ai_reasoning")
+
+  plan       AnnualPlan       @relation(fields: [planId], references: [id], onDelete: Cascade)
+  lease      MaintenanceLease @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  technician Technician       @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+
+  @@index([planId])
+  @@index([technicianId])
+  @@index([leaseId])
+  @@map("annual_plan_entries")
 }
