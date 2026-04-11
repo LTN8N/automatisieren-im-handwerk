@@ -11,9 +11,9 @@ const objectUpdateSchema = z.object({
   city: z.string().min(1).optional(),
   postalCode: z.string().min(1).optional(),
   buildingType: z.string().min(1).optional(),
-  contactName: z.string().optional().nullable(),
-  contactPhone: z.string().optional().nullable(),
-  accessNotes: z.string().optional().nullable(),
+  contactName: z.string().min(1).optional().nullable(),
+  contactPhone: z.string().min(1).optional().nullable(),
+  accessNotes: z.string().min(1).optional().nullable(),
 })
 
 /** GET /api/wartung/objects/:id — Objekt-Detail mit Verträgen */

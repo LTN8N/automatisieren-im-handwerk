@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { getTenantDb } from "@/lib/db"
-import { prisma } from "@/lib/db"
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -15,6 +14,7 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
   const { id } = await params
   const db = getTenantDb(session.user.tenantId)
 
+  // getTenantDb injiziert tenantId in alle Queries — kein zusätzlicher Tenant-Check nötig
   const plan = await db.annualPlan.findFirst({
     where: { id },
     include: {
@@ -37,12 +37,6 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
   })
 
   if (!plan) {
-    return NextResponse.json({ error: "Plan nicht gefunden." }, { status: 404 })
-  }
-
-  // Tenant-Check: plan.tenantId muss passen
-  const rawPlan = await prisma.annualPlan.findUnique({ where: { id }, select: { tenantId: true } })
-  if (!rawPlan || rawPlan.tenantId !== session.user.tenantId) {
     return NextResponse.json({ error: "Plan nicht gefunden." }, { status: 404 })
   }
 

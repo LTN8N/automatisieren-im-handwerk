@@ -89,9 +89,32 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
   const { id } = await params
   const db = getTenantDb(session.user.tenantId)
 
-  const existing = await db.maintenanceContract.findFirst({ where: { id } })
+  const existing = await db.maintenanceContract.findFirst({
+    where: { id },
+    include: {
+      leases: {
+        include: {
+          planEntries: {
+            where: { plan: { status: "RELEASED" } },
+            take: 1,
+            select: { id: true },
+          },
+        },
+        take: 1,
+      },
+    },
+  })
+
   if (!existing) {
     return NextResponse.json({ error: "Vertrag nicht gefunden." }, { status: 404 })
+  }
+
+  const hasReleasedPlanEntries = existing.leases.some((l) => l.planEntries.length > 0)
+  if (hasReleasedPlanEntries) {
+    return NextResponse.json(
+      { error: "Vertrag ist Teil eines freigegebenen Plans und kann nicht gelöscht werden." },
+      { status: 422 }
+    )
   }
 
   await db.maintenanceContract.delete({ where: { id } })

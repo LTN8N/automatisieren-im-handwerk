@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
+import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { getTenantDb } from "@/lib/db"
 import { optimizeWartungsplan } from "@/lib/wartung/ai-optimizer"
 import type { PlanningOptimizerInput } from "@/lib/wartung/prompts/planning-optimizer"
+
+const generateSchema = z.object({
+  year: z.coerce.number().int().min(2000).max(2100),
+})
 
 /**
  * POST /api/wartung/plans/generate — Jahresplan per KI generieren.
@@ -23,11 +28,16 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const year = parseInt(body.year, 10)
+  const parsed = generateSchema.safeParse(body)
 
-  if (!year || year < 2000 || year > 2100) {
-    return NextResponse.json({ error: "Ungültiges Jahr." }, { status: 400 })
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validierungsfehler", details: parsed.error.flatten().fieldErrors },
+      { status: 400 }
+    )
   }
+
+  const { year } = parsed.data
 
   const db = getTenantDb(session.user.tenantId)
 
@@ -123,6 +133,7 @@ export async function POST(req: NextRequest) {
     status: "PLANNED"
     aiReasoning: string
   }> = []
+  const generationWarnings: string[] = []
 
   // Pro Monat: alle fälligen Leistungen bestimmen und per KI optimieren
   for (let month = 1; month <= 12; month++) {
@@ -175,6 +186,8 @@ export async function POST(req: NextRequest) {
     try {
       result = await optimizeWartungsplan(input)
     } catch (err) {
+      const errMsg = err instanceof Error ? err.message : "Unbekannter Fehler"
+      generationWarnings.push(`Monat ${month}: KI-Optimierung fehlgeschlagen (${errMsg}). Fallback: 15. des Monats, erster Techniker.`)
       // Bei KI-Fehler: Einträge ohne KI-Zuweisung anlegen (erster verfügbarer Techniker)
       for (const lease of dueLeases) {
         entries.push({
@@ -184,7 +197,7 @@ export async function POST(req: NextRequest) {
           scheduledDate: new Date(year, month - 1, 15),
           estimatedHours: lease.estimatedHours,
           status: "PLANNED",
-          aiReasoning: `KI-Optimierung fehlgeschlagen: ${err instanceof Error ? err.message : "Unbekannter Fehler"}`,
+          aiReasoning: `KI-Optimierung fehlgeschlagen: ${errMsg}`,
         })
       }
       continue
@@ -216,5 +229,6 @@ export async function POST(req: NextRequest) {
     year,
     entriesCreated: entries.length,
     message: `Plan für ${year} erfolgreich generiert.`,
+    warnings: generationWarnings,
   })
 }

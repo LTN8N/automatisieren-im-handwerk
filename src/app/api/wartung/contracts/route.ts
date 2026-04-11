@@ -40,6 +40,11 @@ export async function GET(req: NextRequest) {
 
   const where: Record<string, unknown> = {}
   if (objectId) {
+    // Prüfen ob Objekt zum Tenant gehört, um Count-Oracle zu verhindern
+    const object = await db.maintenanceObject.findFirst({ where: { id: objectId }, select: { id: true } })
+    if (!object) {
+      return NextResponse.json({ error: "Objekt nicht gefunden." }, { status: 404 })
+    }
     where.objectId = objectId
   }
 

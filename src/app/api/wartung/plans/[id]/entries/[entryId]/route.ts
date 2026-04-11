@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { getTenantDb } from "@/lib/db"
-import { prisma } from "@/lib/db"
 import { z } from "zod"
 
 type RouteParams = { params: Promise<{ id: string; entryId: string }> }
@@ -11,6 +10,9 @@ const entryUpdateSchema = z.object({
   technicianId: z.string().min(1, "Techniker-ID ist erforderlich"),
 })
 
+/** Schwellenwert für Kapazitäts-Warnung (90 % der täglichen Maximalstunden) */
+const CAPACITY_WARNING_THRESHOLD = 0.9
+
 interface ConflictResult {
   status: "OK" | "WARNUNG" | "KONFLIKT"
   details: string[]
@@ -18,21 +20,23 @@ interface ConflictResult {
 
 /**
  * Synchroner Conflict-Check (< 500ms):
- * - Doppelbuchung des Technikers am selben Tag
  * - Fehlende Qualifikation
  * - Kapazitätsüberschreitung (maxDailyHours)
+ * - Techniker inaktiv
+ *
+ * Alle Queries nutzen den tenant-scoped db-Client — kein Cross-Tenant-Zugriff möglich.
  */
 async function checkEntryConflict(
+  db: ReturnType<typeof getTenantDb>,
   entryId: string,
   planId: string,
   newDate: string,
-  newTechnicianId: string,
-  tenantId: string
+  newTechnicianId: string
 ): Promise<ConflictResult> {
   const details: string[] = []
 
-  // Leistungsdetails für diesen Eintrag laden
-  const entry = await prisma.annualPlanEntry.findFirst({
+  // Leistungsdetails für diesen Eintrag laden (tenant-scoped via Plan-Beziehung)
+  const entry = await db.annualPlanEntry.findFirst({
     where: { id: entryId, planId },
     include: {
       lease: { select: { estimatedHours: true, qualificationRequired: true } },
@@ -43,9 +47,9 @@ async function checkEntryConflict(
     return { status: "KONFLIKT", details: ["Eintrag nicht gefunden."] }
   }
 
-  // Techniker laden
-  const technician = await prisma.technician.findFirst({
-    where: { id: newTechnicianId, tenantId },
+  // Techniker laden (tenant-scoped)
+  const technician = await db.technician.findFirst({
+    where: { id: newTechnicianId },
     select: { maxDailyHours: true, qualifications: true, name: true, isActive: true },
   })
 
@@ -54,7 +58,7 @@ async function checkEntryConflict(
   }
 
   if (!technician.isActive) {
-    details.push(`Techniker ist nicht aktiv.`)
+    details.push("Techniker ist nicht aktiv.")
   }
 
   // Qualifikationsprüfung
@@ -64,12 +68,12 @@ async function checkEntryConflict(
   }
 
   // Bereits gebuchte Stunden dieses Technikers am neuen Datum (außer dem aktuellen Eintrag)
-  const existingEntries = await prisma.annualPlanEntry.findMany({
+  // Tenant-Isolation erfolgt durch den tenant-scoped Client (plan.tenantId wird automatisch gefilert)
+  const existingEntries = await db.annualPlanEntry.findMany({
     where: {
       technicianId: newTechnicianId,
       scheduledDate: new Date(newDate),
       id: { not: entryId },
-      plan: { tenantId },
     },
     select: { estimatedHours: true },
   })
@@ -81,7 +85,7 @@ async function checkEntryConflict(
     details.push(
       `Kapazität überschritten: ${afterBooking.toFixed(1)}h geplant, Max. ${technician.maxDailyHours}h/Tag.`
     )
-  } else if (afterBooking > technician.maxDailyHours * 0.9) {
+  } else if (afterBooking > technician.maxDailyHours * CAPACITY_WARNING_THRESHOLD) {
     details.push(
       `Kapazität fast erreicht: ${afterBooking.toFixed(1)}h von ${technician.maxDailyHours}h.`
     )
@@ -91,7 +95,6 @@ async function checkEntryConflict(
     return { status: "OK", details: [] }
   }
 
-  // Harte Konflikte: Qualifikation fehlt oder Kapazität überschritten
   const hasHardConflict = details.some(
     (d) => d.includes("Qualifikation") || d.includes("Kapazität überschritten") || d.includes("nicht aktiv")
   )
@@ -112,7 +115,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   const { id: planId, entryId } = await params
   const db = getTenantDb(session.user.tenantId)
 
-  // Plan-Zugehörigkeit und Tenant prüfen
+  // Plan-Zugehörigkeit und Tenant prüfen (tenant-scoped)
   const plan = await db.annualPlan.findFirst({ where: { id: planId } })
   if (!plan) {
     return NextResponse.json({ error: "Plan nicht gefunden." }, { status: 404 })
@@ -137,25 +140,16 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
   const { scheduledDate, technicianId } = result.data
 
-  // Conflict-Check
-  const conflict = await checkEntryConflict(
-    entryId,
-    planId,
-    scheduledDate,
-    technicianId,
-    session.user.tenantId
-  )
+  // Conflict-Check (tenant-scoped db)
+  const conflict = await checkEntryConflict(db, entryId, planId, scheduledDate, technicianId)
 
   if (conflict.status === "KONFLIKT") {
-    return NextResponse.json(
-      { error: "Konflikt erkannt", conflict },
-      { status: 422 }
-    )
+    return NextResponse.json({ error: "Konflikt erkannt", conflict }, { status: 422 })
   }
 
-  // Eintrag aktualisieren
-  const updated = await prisma.annualPlanEntry.update({
-    where: { id: entryId },
+  // Eintrag aktualisieren — tenant-scoped: planId-Filter stellt Zugehörigkeit sicher
+  const updated = await db.annualPlanEntry.update({
+    where: { id: entryId, planId },
     data: {
       scheduledDate: new Date(scheduledDate),
       technicianId,
