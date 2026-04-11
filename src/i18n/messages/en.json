@@ -162,7 +162,17 @@
     "planStatusDRAFT": "Draft",
     "planStatusRELEASED": "Released",
     "planStatusEXECUTING": "Executing",
-    "planStatusCOMPLETED": "Completed"
+    "planStatusCOMPLETED": "Completed",
+    "jahresplanNeu": "Create Annual Plan",
+    "jahresplanNeuSubtitle": "AI automatically schedules your maintenance appointments for the selected year.",
+    "jahresplanDetail": "Annual Plan {year}",
+    "jahresplanZurueck": "Back",
+    "jahresplanFreigeben": "Release Plan",
+    "jahresplanPDFExport": "Export as PDF",
+    "jahresplanKonflikte": "Conflicts",
+    "jahresplanTechnikerFilter": "Technicians",
+    "jahresplanAnlagentypFilter": "Equipment Type",
+    "jahresplanKeineTechniker": "No technicians available."
   },
   "angebote": {
     "title": "Quotes",

@@ -106,7 +106,7 @@ export function WartungOverview({
           </Button>
           <Button
             variant="outline"
-            onClick={() => router.push("/dashboard/wartung/vertraege")}
+            onClick={() => router.push("/dashboard/wartung/plaene/neu")}
             className="rounded-xl min-h-[48px] flex-1 sm:flex-none"
           >
             <Sparkles className="mr-2 h-5 w-5" />
@@ -130,7 +130,8 @@ export function WartungOverview({
             {jahresplaene.map((plan) => (
               <div
                 key={plan.id}
-                className="flex items-center justify-between px-4 py-3"
+                className="flex cursor-pointer items-center justify-between px-4 py-3 transition-colors hover:bg-muted/40"
+                onClick={() => router.push(`/dashboard/wartung/plaene/${plan.id}`)}
               >
                 <span className="font-medium text-sm">
                   {t("planJahr", { year: plan.year })}
