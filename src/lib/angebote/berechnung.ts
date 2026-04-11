@@ -21,9 +21,13 @@ export interface DokumentSummen {
   brutto: number
 }
 
-/** Kaufmännisch runden auf 2 Dezimalstellen */
+/** Kaufmännisch runden auf 2 Dezimalstellen (half-up).
+ * Multipliziert zuerst mit 100, dann korrigiert mit EPSILON auf der
+ * Skalierungsebene, um Floating-Point-Darstellungsfehler abzufangen
+ * (z.B. 3 × 1.005 = 3.0149999... statt 3.015 in IEEE-754).
+ */
 function runden(wert: number): number {
-  return Math.round((wert + Number.EPSILON) * 100) / 100
+  return Math.round(wert * 100 * (1 + Number.EPSILON)) / 100
 }
 
 /** Berechnet Gesamtpreis und USt-Betrag einer Position */
