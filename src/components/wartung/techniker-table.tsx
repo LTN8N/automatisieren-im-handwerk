@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, X, Check, Pencil, UserCircle } from "lucide-react";
+import { Plus, X, Check, Pencil, UserCircle, Users } from "lucide-react";
 
 interface Techniker {
   id: string;
@@ -210,8 +210,25 @@ export function TechnikerTable({ techniker: initialTechniker }: TechnikerTablePr
           <tbody>
             {techniker.length === 0 ? (
               <tr>
-                <td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">
-                  {t("keineTechniker")}
+                <td colSpan={3}>
+                  <div className="flex flex-col items-center justify-center gap-4 py-14 px-4 text-center">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+                      <Users className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm">{t("keineTechniker")}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Legen Sie Techniker an und weisen Sie Qualifikationen zu.
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => setShowForm(true)}
+                      className="rounded-xl min-h-[48px]"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Ersten Techniker anlegen
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ) : (

@@ -204,8 +204,35 @@ export function VertraegeTable({
           <tbody>
             {vertraege.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
-                  {t("keineVertraege")}
+                <td colSpan={5}>
+                  <div className="flex flex-col items-center justify-center gap-4 py-14 px-4 text-center">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+                      <FileText className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm">{t("keineVertraege")}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Legen Sie Ihren ersten Wartungsvertrag an oder importieren Sie bestehende.
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Button
+                        onClick={() => router.push("vertraege/neu")}
+                        className="rounded-xl min-h-[48px]"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Ersten Vertrag anlegen
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setImportOpen(true)}
+                        className="rounded-xl min-h-[48px]"
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        {t("importieren")}
+                      </Button>
+                    </div>
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -292,15 +319,22 @@ export function VertraegeTable({
                   onDragLeave={() => setDragOver(false)}
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
-                  className={`cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
+                  className={`cursor-pointer rounded-2xl border-2 border-dashed p-10 text-center transition-all min-h-[160px] flex flex-col items-center justify-center gap-3 ${
                     dragOver
-                      ? "border-primary bg-primary/5"
-                      : "border-muted-foreground/30 hover:border-primary/50"
+                      ? "border-primary bg-primary/5 scale-[1.01]"
+                      : "border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/30"
                   }`}
                 >
-                  <Upload className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
-                  <p className="text-sm font-medium">{t("importDragDrop")}</p>
-                  <p className="text-xs text-muted-foreground mt-1">.xlsx</p>
+                  <div className={`flex h-14 w-14 items-center justify-center rounded-2xl transition-colors ${dragOver ? "bg-primary/10" : "bg-muted"}`}>
+                    <Upload className={`h-7 w-7 transition-colors ${dragOver ? "text-primary" : "text-muted-foreground"}`} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">{t("importDragDrop")}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Excel-Datei auswählen oder hierher ziehen
+                    </p>
+                    <p className="text-xs text-muted-foreground/60 mt-0.5">.xlsx · .xls</p>
+                  </div>
                   <input
                     ref={fileInputRef}
                     type="file"

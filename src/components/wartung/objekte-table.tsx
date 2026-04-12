@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, ChevronLeft, ChevronRight, Building2 } from "lucide-react";
+import { Plus, Search, ChevronLeft, ChevronRight, Building2, MapPin } from "lucide-react";
 
 interface Objekt {
   id: string;
@@ -89,8 +89,25 @@ export function ObjekteTable({ objekte, pagination, searchQuery }: ObjekteTableP
           <tbody>
             {objekte.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
-                  {t("keineObjekte")}
+                <td colSpan={5}>
+                  <div className="flex flex-col items-center justify-center gap-4 py-14 px-4 text-center">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+                      <MapPin className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm">{t("keineObjekte")}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Fügen Sie Ihr erstes Wartungsobjekt hinzu.
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => router.push("objekte/neu")}
+                      className="rounded-xl min-h-[48px]"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Erstes Objekt anlegen
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ) : (

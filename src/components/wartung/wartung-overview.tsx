@@ -124,7 +124,25 @@ export function WartungOverview({
           </h2>
         </div>
         {jahresplaene.length === 0 ? (
-          <p className="p-4 text-sm text-muted-foreground">{t("keinePlaene")}</p>
+          <div className="flex flex-col items-center justify-center gap-4 py-10 px-4 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
+              <CalendarDays className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold">{t("keinePlaene")}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Erstellen Sie jetzt Ihren ersten Jahresplan.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => router.push("/dashboard/wartung/vertraege")}
+              className="rounded-xl min-h-[44px]"
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              Plan generieren
+            </Button>
+          </div>
         ) : (
           <div className="divide-y">
             {jahresplaene.map((plan) => (
