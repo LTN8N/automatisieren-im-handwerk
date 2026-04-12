@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Settings,
   Menu,
+  Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +33,7 @@ const navItems: NavItem[] = [
   { href: "/dashboard/angebote", labelKey: "angebote", icon: FileText },
   { href: "/dashboard/rechnungen", labelKey: "rechnungen", icon: Receipt },
   { href: "/dashboard/kunden", labelKey: "kunden", icon: Users },
+  { href: "/dashboard/wartung", labelKey: "wartung", icon: Wrench },
   { href: "/dashboard/chat", labelKey: "chat", icon: MessageSquare },
   {
     href: "/dashboard/einstellungen",

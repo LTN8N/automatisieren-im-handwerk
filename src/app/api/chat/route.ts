@@ -5,6 +5,7 @@ import { prisma, getTenantDb } from "@/lib/db";
 import { buildSystemPrompt } from "@/lib/ai/prompts";
 import { HANDWERK_TOOLS } from "@/lib/ai/tools";
 import { executeTool } from "@/lib/ai/tool-executor";
+import { extragiereKontext, formatKontextHinweis } from "@/lib/ai/context-extractor";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -53,14 +54,15 @@ export async function POST(req: NextRequest) {
   const verlaufSorted = verlauf.reverse();
 
   // Nachrichten fuer OpenAI aufbauen
+  const kontext = extragiereKontext(nachricht);
+  const kontextHinweis = formatKontextHinweis(kontext);
+
   const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
     {
       role: "system",
-      content: buildSystemPrompt({
-        firmenname: tenant?.name ?? "Ihr Betrieb",
-        userName,
-        quelle,
-      }),
+      content:
+        buildSystemPrompt({ firmenname: tenant?.name ?? "Ihr Betrieb", userName, quelle }) +
+        kontextHinweis,
     },
   ];
 
@@ -88,7 +90,7 @@ export async function POST(req: NextRequest) {
 
       try {
         // Tool-Execution-Loop: max 5 Durchlaeufe
-        let currentMessages = [...messages];
+        const currentMessages = [...messages];
         const MAX_TOOL_ROUNDS = 5;
 
         for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {

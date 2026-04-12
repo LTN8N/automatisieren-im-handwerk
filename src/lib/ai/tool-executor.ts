@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getTenantDb } from "@/lib/db";
+import type { AngebotStatus } from "@prisma/client";
 import { naechsteNummer } from "@/lib/angebote/nummernkreis";
 import { berechnePosition, berechneDokumentSummen } from "@/lib/angebote/berechnung";
 
@@ -272,6 +273,216 @@ export async function executeTool(
     case "dokument_versenden": {
       if (!args.bestaetigt) return "Aktion abgebrochen — keine Bestaetigung.";
       return "E-Mail-Versand ist in der Testumgebung deaktiviert. Im Produktivbetrieb wird das Dokument per E-Mail versendet.";
+    }
+
+    case "angebot_suchen": {
+      const kundeName = args.kundeName as string | undefined;
+      const stichwort = args.stichwort as string | undefined;
+      const nurOffen = args.nurOffen as boolean | undefined;
+
+      const offenStatusListe: AngebotStatus[] = ["ENTWURF", "GESENDET"];
+
+      const angebote = await prisma.angebot.findMany({
+        where: {
+          tenantId,
+          archiviertAm: null,
+          ...(nurOffen ? { status: { in: offenStatusListe } } : {}),
+          ...(kundeName
+            ? { kunde: { name: { contains: kundeName, mode: "insensitive" } } }
+            : {}),
+        },
+        take: 5,
+        orderBy: { createdAt: "desc" },
+        include: {
+          kunde: { select: { id: true, name: true, email: true } },
+          positionen: {
+            select: { id: true, beschreibung: true, menge: true, einzelpreis: true, einheit: true },
+          },
+        },
+      });
+
+      const gefiltert = stichwort
+        ? angebote.filter((a) => {
+            const text = [
+              a.nummer,
+              a.kunde.name,
+              ...a.positionen.map((p: { beschreibung: string }) => p.beschreibung),
+            ].join(" ").toLowerCase();
+            return text.includes(stichwort.toLowerCase());
+          })
+        : angebote;
+
+      if (gefiltert.length === 0) return "Kein passendes Angebot gefunden.";
+      return JSON.stringify(
+        gefiltert.map((a) => ({
+          id: a.id,
+          nummer: a.nummer,
+          status: a.status,
+          kunde: a.kunde,
+          netto: Number(a.netto),
+          brutto: Number(a.brutto),
+          positionen: a.positionen,
+        }))
+      );
+    }
+
+    case "position_hinzufuegen": {
+      const angebotId = args.angebotId as string;
+      const beschreibung = args.beschreibung as string;
+      const menge = args.menge as number;
+      const einheit = (args.einheit as string) || "Stk";
+      const einzelpreis = args.einzelpreis as number;
+
+      const angebot = await db.angebot.findFirst({
+        where: { id: angebotId },
+        include: { positionen: true },
+      });
+      if (!angebot) return "Angebot nicht gefunden.";
+
+      const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+      const ustSatz = (args.ustSatz as number) ?? Number(tenant?.ustSatz ?? 19);
+
+      const ergebnis = berechnePosition({ menge, einzelpreis, ustSatz });
+      const sortierung = angebot.positionen.length;
+
+      await prisma.angebotPosition.create({
+        data: {
+          angebotId,
+          beschreibung,
+          menge,
+          einheit,
+          einzelpreis,
+          gesamtpreis: ergebnis.gesamtpreis,
+          ustSatz,
+          ustBetrag: ergebnis.ustBetrag,
+          sortierung,
+        },
+      });
+
+      // Summen neu berechnen
+      const allePositionen = await prisma.angebotPosition.findMany({ where: { angebotId } });
+      const summen = berechneDokumentSummen(
+        allePositionen.map((p) => ({
+          menge: Number(p.menge),
+          einzelpreis: Number(p.einzelpreis),
+          gesamtpreis: Number(p.gesamtpreis),
+          ustSatz: Number(p.ustSatz),
+          ustBetrag: Number(p.ustBetrag),
+        }))
+      );
+
+      await db.angebot.update({
+        where: { id: angebotId },
+        data: { netto: summen.netto, ust: summen.ust, brutto: summen.brutto },
+      });
+
+      return `Position "${beschreibung}" (${menge} ${einheit} × ${einzelpreis.toFixed(2)} EUR) zum Angebot ${angebot.nummer} hinzugefuegt. Neues Brutto: ${summen.brutto.toFixed(2)} EUR.`;
+    }
+
+    case "position_aendern": {
+      const angebotId = args.angebotId as string;
+      const positionId = args.positionId as string;
+
+      const angebot = await db.angebot.findFirst({ where: { id: angebotId } });
+      if (!angebot) return "Angebot nicht gefunden.";
+
+      const position = await prisma.angebotPosition.findFirst({ where: { id: positionId, angebotId } });
+      if (!position) return "Position nicht gefunden.";
+
+      const menge = (args.menge as number) ?? Number(position.menge);
+      const einzelpreis = (args.einzelpreis as number) ?? Number(position.einzelpreis);
+      const ustSatz = Number(position.ustSatz);
+      const ergebnis = berechnePosition({ menge, einzelpreis, ustSatz });
+
+      await prisma.angebotPosition.update({
+        where: { id: positionId },
+        data: {
+          ...(args.beschreibung ? { beschreibung: args.beschreibung as string } : {}),
+          ...(args.einheit ? { einheit: args.einheit as string } : {}),
+          menge,
+          einzelpreis,
+          gesamtpreis: ergebnis.gesamtpreis,
+          ustBetrag: ergebnis.ustBetrag,
+        },
+      });
+
+      // Summen neu berechnen
+      const allePositionen = await prisma.angebotPosition.findMany({ where: { angebotId } });
+      const summen = berechneDokumentSummen(
+        allePositionen.map((p) => ({
+          menge: Number(p.menge),
+          einzelpreis: Number(p.einzelpreis),
+          gesamtpreis: Number(p.gesamtpreis),
+          ustSatz: Number(p.ustSatz),
+          ustBetrag: Number(p.ustBetrag),
+        }))
+      );
+
+      await db.angebot.update({
+        where: { id: angebotId },
+        data: { netto: summen.netto, ust: summen.ust, brutto: summen.brutto },
+      });
+
+      return `Position geaendert. Angebot ${angebot.nummer} neues Brutto: ${summen.brutto.toFixed(2)} EUR.`;
+    }
+
+    case "position_loeschen": {
+      if (!args.bestaetigt) return "Aktion abgebrochen — keine Bestaetigung.";
+
+      const angebotId = args.angebotId as string;
+      const positionId = args.positionId as string;
+
+      const angebot = await db.angebot.findFirst({ where: { id: angebotId } });
+      if (!angebot) return "Angebot nicht gefunden.";
+
+      const position = await prisma.angebotPosition.findFirst({ where: { id: positionId, angebotId } });
+      if (!position) return "Position nicht gefunden.";
+
+      await prisma.angebotPosition.delete({ where: { id: positionId } });
+
+      // Summen neu berechnen
+      const allePositionen = await prisma.angebotPosition.findMany({ where: { angebotId } });
+      const summen = berechneDokumentSummen(
+        allePositionen.map((p) => ({
+          menge: Number(p.menge),
+          einzelpreis: Number(p.einzelpreis),
+          gesamtpreis: Number(p.gesamtpreis),
+          ustSatz: Number(p.ustSatz),
+          ustBetrag: Number(p.ustBetrag),
+        }))
+      );
+
+      await db.angebot.update({
+        where: { id: angebotId },
+        data: { netto: summen.netto, ust: summen.ust, brutto: summen.brutto },
+      });
+
+      return `Position "${position.beschreibung}" geloescht. Angebot ${angebot.nummer} neues Brutto: ${summen.brutto.toFixed(2)} EUR.`;
+    }
+
+    case "rechnung_status_aendern": {
+      if (!args.bestaetigt) return "Aktion abgebrochen — keine Bestaetigung.";
+
+      const rechnungId = args.rechnungId as string;
+      const neuerStatus = args.neuerStatus as "BEZAHLT" | "STORNIERT";
+
+      const rechnung = await db.rechnung.findFirst({ where: { id: rechnungId } });
+      if (!rechnung) return "Rechnung nicht gefunden.";
+
+      if (rechnung.gesperrt) return "Diese Rechnung ist gesperrt und kann nicht geaendert werden.";
+
+      await db.rechnung.update({
+        where: { id: rechnungId },
+        data: {
+          status: neuerStatus === "BEZAHLT" ? "BEZAHLT" : "ENTWURF",
+          ...(neuerStatus === "BEZAHLT" ? { bezahltAm: new Date() } : {}),
+        },
+      });
+
+      if (neuerStatus === "BEZAHLT") {
+        return `Rechnung ${rechnung.nummer} als bezahlt markiert.`;
+      }
+      return `Rechnung ${rechnung.nummer} storniert.`;
     }
 
     default:
