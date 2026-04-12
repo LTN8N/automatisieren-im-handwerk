@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
 
       try {
         // Tool-Execution-Loop: max 5 Durchlaeufe
-        let currentMessages = [...messages];
+        const currentMessages = [...messages];
         const MAX_TOOL_ROUNDS = 5;
 
         for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {

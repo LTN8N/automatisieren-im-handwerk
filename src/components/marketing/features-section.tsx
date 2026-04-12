@@ -15,6 +15,7 @@ const featureIcons = [
   // Microphone icon
   (
     <svg
+      key="microphone"
       width="22"
       height="22"
       viewBox="0 0 24 24"
@@ -33,6 +34,7 @@ const featureIcons = [
   // File-check icon
   (
     <svg
+      key="file-check"
       width="22"
       height="22"
       viewBox="0 0 24 24"
@@ -51,6 +53,7 @@ const featureIcons = [
   // Users icon
   (
     <svg
+      key="users"
       width="22"
       height="22"
       viewBox="0 0 24 24"
@@ -70,6 +73,7 @@ const featureIcons = [
   // Smartphone icon
   (
     <svg
+      key="smartphone"
       width="22"
       height="22"
       viewBox="0 0 24 24"
