@@ -16,6 +16,7 @@ const stepIcons = [
   // Microphone
   (
     <svg
+      key="microphone"
       width="24"
       height="24"
       viewBox="0 0 24 24"
@@ -34,6 +35,7 @@ const stepIcons = [
   // Sparkles / AI
   (
     <svg
+      key="sparkles"
       width="24"
       height="24"
       viewBox="0 0 24 24"
@@ -52,6 +54,7 @@ const stepIcons = [
   // Send
   (
     <svg
+      key="send"
       width="24"
       height="24"
       viewBox="0 0 24 24"
