@@ -27,6 +27,10 @@ export default async function RechnungDetailPage({ params }: RechnungDetailPageP
       historie: { orderBy: { createdAt: "desc" } },
       kunde: { select: { id: true, name: true, adresse: true, email: true } },
       angebot: { select: { id: true, nummer: true } },
+      mahnungen: {
+        where: { storniert: false },
+        orderBy: { gesendetAm: "asc" },
+      },
     },
   });
 

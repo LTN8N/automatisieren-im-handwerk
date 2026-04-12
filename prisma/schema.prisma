@@ -34,6 +34,7 @@ model Tenant {
   rechnungen    Rechnung[]
   nummernkreise Nummernkreis[]
   chatHistory   ChatHistory[]
+  mahnungen     Mahnung[]
 
   @@map("tenants")
 }
@@ -159,6 +160,18 @@ enum RechnungStatus {
   BEZAHLT
   UEBERFAELLIG
   MAHNUNG
+  ERINNERUNG
+  MAHNUNG_1
+  MAHNUNG_2
+  INKASSO
+  STORNIERT
+}
+
+enum Mahnstufe {
+  ERINNERUNG
+  MAHNUNG_1
+  MAHNUNG_2
+  INKASSO
 }
 
 model Rechnung {
@@ -185,6 +198,7 @@ model Rechnung {
   angebot       Angebot?       @relation(fields: [angebotId], references: [id], onDelete: SetNull)
   positionen    RechnungPosition[]
   historie      RechnungHistorie[]
+  mahnungen     Mahnung[]
 
   @@unique([tenantId, nummer])
   @@index([tenantId])
@@ -222,6 +236,32 @@ model RechnungHistorie {
   rechnung      Rechnung @relation(fields: [rechnungId], references: [id], onDelete: Cascade)
 
   @@map("rechnung_historie")
+}
+
+// --- Mahnwesen ---
+
+model Mahnung {
+  id                String    @id @default(cuid())
+  rechnungId        String    @map("rechnung_id")
+  tenantId          String    @map("tenant_id")
+  mahnstufe         Mahnstufe
+  offenerBetrag     Decimal   @map("offener_betrag") @db.Decimal(10, 2)
+  mahngebuehr       Decimal   @default(0) @map("mahngebuehr") @db.Decimal(10, 2)
+  verzugszinsen     Decimal   @default(0) @map("verzugszinsen") @db.Decimal(10, 2)
+  verzugstage       Int       @map("verzugstage")
+  emailGesendetAn   String?   @map("email_gesendet_an")
+  gesendetAm        DateTime  @default(now()) @map("gesendet_am")
+  storniert         Boolean   @default(false)
+  stornoGrund       String?   @map("storno_grund")
+  archiviertAm      DateTime? @map("archiviert_am")
+  notizen           String?
+
+  rechnung          Rechnung  @relation(fields: [rechnungId], references: [id], onDelete: Restrict)
+  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([rechnungId])
+  @@index([tenantId])
+  @@map("mahnungen")
 }
 
 // --- Nummernkreise ---

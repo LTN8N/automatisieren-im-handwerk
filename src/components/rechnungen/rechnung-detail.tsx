@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { ArrowLeft, Send, CheckCircle, Archive, Clock, FileText } from "lucide-react";
+import { MahnungsDashboard } from "@/components/mahnwesen/mahnungs-dashboard";
 
 interface Position {
   id: string;
@@ -27,6 +28,19 @@ interface Historie {
   createdAt: string;
 }
 
+interface Mahnung {
+  id: string;
+  mahnstufe: "ERINNERUNG" | "MAHNUNG_1" | "MAHNUNG_2" | "INKASSO";
+  offenerBetrag: number;
+  mahngebuehr: number;
+  verzugszinsen: number;
+  verzugstage: number;
+  emailGesendetAn: string | null;
+  gesendetAm: string;
+  storniert: boolean;
+  notizen: string | null;
+}
+
 interface RechnungData {
   id: string;
   nummer: string;
@@ -44,6 +58,7 @@ interface RechnungData {
   angebot: { id: string; nummer: string } | null;
   positionen: Position[];
   historie: Historie[];
+  mahnungen?: Mahnung[];
 }
 
 const STATUS_FARBEN: Record<string, string> = {
@@ -52,6 +67,11 @@ const STATUS_FARBEN: Record<string, string> = {
   BEZAHLT: "bg-green-100 text-green-700",
   UEBERFAELLIG: "bg-red-100 text-red-700",
   MAHNUNG: "bg-orange-100 text-orange-700",
+  ERINNERUNG: "bg-yellow-100 text-yellow-800",
+  MAHNUNG_1: "bg-orange-100 text-orange-800",
+  MAHNUNG_2: "bg-red-100 text-red-800",
+  INKASSO: "bg-red-900 text-red-100",
+  STORNIERT: "bg-slate-100 text-slate-500 line-through",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -60,6 +80,11 @@ const STATUS_LABELS: Record<string, string> = {
   BEZAHLT: "statusBezahlt",
   UEBERFAELLIG: "statusUeberfaellig",
   MAHNUNG: "statusMahnung",
+  ERINNERUNG: "Zahlungserinnerung",
+  MAHNUNG_1: "1. Mahnung",
+  MAHNUNG_2: "2. Mahnung",
+  INKASSO: "Inkasso",
+  STORNIERT: "Storniert",
 };
 
 export function RechnungDetail({ rechnung }: { rechnung: RechnungData }) {
@@ -104,7 +129,9 @@ export function RechnungDetail({ rechnung }: { rechnung: RechnungData }) {
           <div>
             <h1 className="text-2xl font-bold">{rechnung.nummer}</h1>
             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_FARBEN[rechnung.status] || ""}`}>
-              {t(STATUS_LABELS[rechnung.status] || rechnung.status)}
+              {["ERINNERUNG", "MAHNUNG_1", "MAHNUNG_2", "INKASSO", "STORNIERT"].includes(rechnung.status)
+                ? STATUS_LABELS[rechnung.status]
+                : t(STATUS_LABELS[rechnung.status] || rechnung.status)}
             </span>
           </div>
         </div>
@@ -114,7 +141,7 @@ export function RechnungDetail({ rechnung }: { rechnung: RechnungData }) {
               <Send className="size-3.5 mr-1" />{t("senden")}
             </Button>
           )}
-          {(rechnung.status === "GESENDET" || rechnung.status === "UEBERFAELLIG" || rechnung.status === "MAHNUNG") && (
+          {["GESENDET", "UEBERFAELLIG", "MAHNUNG", "ERINNERUNG", "MAHNUNG_1", "MAHNUNG_2"].includes(rechnung.status) && (
             <Button size="sm" variant="outline" onClick={() => statusWechseln("BEZAHLT")} disabled={updating}
               className="text-green-700 border-green-300 hover:bg-green-50">
               <CheckCircle className="size-3.5 mr-1" />{t("alsBezahltMarkieren")}
@@ -213,6 +240,16 @@ export function RechnungDetail({ rechnung }: { rechnung: RechnungData }) {
           </div>
         </div>
       </div>
+
+      {/* Mahnwesen */}
+      <MahnungsDashboard
+        rechnungId={rechnung.id}
+        rechnungStatus={rechnung.status}
+        zahlungsziel={rechnung.zahlungsziel}
+        brutto={rechnung.brutto}
+        kundeEmail={rechnung.kunde.email}
+        mahnungen={rechnung.mahnungen ?? []}
+      />
 
       {/* Historie */}
       {rechnung.historie.length > 0 && (

@@ -155,11 +155,42 @@ export const HANDWERK_TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "zahlungserinnerung_senden",
+      description: "Erstellt eine Zahlungserinnerung oder Mahnung fuer eine ueberfaellige Rechnung und sendet sie per E-Mail an den Kunden.",
+      parameters: {
+        type: "object",
+        properties: {
+          rechnungId: {
+            type: "string",
+            description: "ID der Rechnung, fuer die die Mahnung erstellt werden soll",
+          },
+          kundeName: {
+            type: "string",
+            description: "Name des Kunden (zur Suche, wenn rechnungId unbekannt)",
+          },
+          stufe: {
+            type: "string",
+            enum: ["ERINNERUNG", "MAHNUNG_1", "MAHNUNG_2", "INKASSO"],
+            description: "Mahnstufe. ERINNERUNG = Zahlungserinnerung, MAHNUNG_1 = 1. Mahnung, MAHNUNG_2 = 2. Mahnung, INKASSO = Inkasso-Uebergabe",
+          },
+          bestaetigt: {
+            type: "boolean",
+            description: "Muss true sein, damit die Mahnung tatsaechlich versendet wird",
+          },
+        },
+        required: ["bestaetigt"],
+      },
+    },
+  },
 ];
 
 export const KRITISCHE_TOOLS = new Set([
   "angebot_zu_rechnung",
   "dokument_versenden",
+  "zahlungserinnerung_senden",
 ]);
 
 export const TOOL_BESCHREIBUNG: Record<string, string> = {
@@ -171,4 +202,5 @@ export const TOOL_BESCHREIBUNG: Record<string, string> = {
   kunde_suchen: "Kunden suchen",
   rechnung_erstellen: "Rechnung erstellen",
   ueberfaellige_rechnungen_liste: "Ueberfaellige Rechnungen anzeigen",
+  zahlungserinnerung_senden: "Zahlungserinnerung / Mahnung senden",
 };
