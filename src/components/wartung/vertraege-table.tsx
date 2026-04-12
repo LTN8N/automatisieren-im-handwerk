@@ -351,6 +351,7 @@ export function VertraegeTable({
                 <div className="flex items-center justify-center">
                   <a
                     href="/api/wartung/contracts/import/excel?template=1"
+                    download="wartungsvertrag-vorlage.xlsx"
                     className="flex items-center gap-2 text-sm text-primary hover:underline"
                   >
                     <Download className="h-4 w-4" />
