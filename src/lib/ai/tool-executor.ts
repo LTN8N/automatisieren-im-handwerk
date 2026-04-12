@@ -2,6 +2,17 @@ import { prisma } from "@/lib/db";
 import { getTenantDb } from "@/lib/db";
 import { naechsteNummer } from "@/lib/angebote/nummernkreis";
 import { berechnePosition, berechneDokumentSummen } from "@/lib/angebote/berechnung";
+import {
+  berechneVerzugstage,
+  berechneVerzugszinsen,
+  istMahnstufeZulaessig,
+  MAHNSTUFE_GEBUEHR,
+  MAHNSTUFE_TAGE,
+  mahnstufeZuRechnungStatus,
+} from "@/lib/mahnwesen/mahnstufen";
+import { erstelleMahnEmail, berechneNeueFrist } from "@/lib/mahnwesen/templates";
+import { sendMail } from "@/lib/email/mailer";
+import type { Mahnstufe } from "@prisma/client";
 
 /**
  * Fuehrt ein Tool gegen die Datenbank aus und gibt das Ergebnis als String zurueck.
@@ -272,6 +283,129 @@ export async function executeTool(
     case "dokument_versenden": {
       if (!args.bestaetigt) return "Aktion abgebrochen — keine Bestaetigung.";
       return "E-Mail-Versand ist in der Testumgebung deaktiviert. Im Produktivbetrieb wird das Dokument per E-Mail versendet.";
+    }
+
+    case "zahlungserinnerung_senden": {
+      if (!args.bestaetigt) return "Bitte bestaetigen Sie, dass die Mahnung versendet werden soll.";
+
+      const ERLAUBTE_QUELL_STATI = new Set([
+        "GESENDET", "UEBERFAELLIG", "ERINNERUNG", "MAHNUNG_1", "MAHNUNG_2",
+      ]);
+
+      let rechnungId = args.rechnungId as string | undefined;
+
+      // Rechnung per Kundenname suchen, wenn keine ID angegeben
+      if (!rechnungId && args.kundeName) {
+        const kundeName = args.kundeName as string;
+        const kunden = await db.kunde.findMany({
+          where: { name: { contains: kundeName, mode: "insensitive" } },
+          take: 1,
+          select: { id: true },
+        });
+        if (kunden.length === 0) return `Kein Kunde mit Namen "${kundeName}" gefunden.`;
+
+        const offeneRechnungen = await db.rechnung.findMany({
+          where: {
+            kundeId: kunden[0].id,
+            status: { in: Array.from(ERLAUBTE_QUELL_STATI) as never[] },
+          },
+          orderBy: { zahlungsziel: "asc" },
+          take: 1,
+          select: { id: true, nummer: true },
+        });
+        if (offeneRechnungen.length === 0) return `Keine offene überfällige Rechnung für "${kundeName}" gefunden.`;
+        rechnungId = offeneRechnungen[0].id;
+      }
+
+      if (!rechnungId) return "Fehler: Rechnungs-ID oder Kundenname erforderlich.";
+
+      const rechnung = await db.rechnung.findFirst({
+        where: { id: rechnungId },
+        include: {
+          kunde: { select: { name: true, email: true } },
+          mahnungen: { where: { storniert: false }, orderBy: { gesendetAm: "desc" }, take: 1 },
+        },
+      });
+
+      if (!rechnung) return "Rechnung nicht gefunden.";
+      if (!ERLAUBTE_QUELL_STATI.has(rechnung.status)) {
+        return `Mahnung nicht möglich. Rechnungsstatus ist '${rechnung.status}'.`;
+      }
+      if (!rechnung.zahlungsziel) return "Rechnung hat kein Zahlungsziel.";
+
+      // Stufe ermitteln: explizit angegeben oder nächste fällige
+      const naechsteStufenMap: Record<string, Mahnstufe> = {
+        GESENDET: "ERINNERUNG", UEBERFAELLIG: "ERINNERUNG",
+        ERINNERUNG: "MAHNUNG_1", MAHNUNG_1: "MAHNUNG_2", MAHNUNG_2: "INKASSO",
+      };
+      const hoechsteBisherige = rechnung.mahnungen[0]?.mahnstufe ?? null;
+      const stufe = (args.stufe as Mahnstufe) ?? naechsteStufenMap[hoechsteBisherige ?? rechnung.status];
+
+      if (!stufe) return "Keine weitere Mahnstufe möglich.";
+      if (!istMahnstufeZulaessig(stufe, hoechsteBisherige)) {
+        return `Rückstufung von '${hoechsteBisherige}' auf '${stufe}' nicht zulässig.`;
+      }
+
+      const verzugstage = berechneVerzugstage(rechnung.zahlungsziel);
+      const offenerBetrag = Number(rechnung.brutto);
+      const mahngebuehr = MAHNSTUFE_GEBUEHR[stufe];
+      const verzugszinsen = stufe !== "ERINNERUNG" ? berechneVerzugszinsen(offenerBetrag, verzugstage) : 0;
+
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { name: true, bankIban: true },
+      });
+
+      await prisma.$transaction([
+        prisma.mahnung.create({
+          data: {
+            rechnungId,
+            tenantId,
+            mahnstufe: stufe,
+            offenerBetrag,
+            mahngebuehr,
+            verzugszinsen,
+            verzugstage,
+            emailGesendetAn: rechnung.kunde.email ?? undefined,
+          },
+        }),
+        prisma.rechnung.update({
+          where: { id: rechnungId },
+          data: {
+            status: mahnstufeZuRechnungStatus(stufe),
+            historie: {
+              create: {
+                quelle: "chat",
+                wasGeaendert: `Mahnstufe ${stufe} via KI`,
+                neuerWert: `Verzugstage: ${verzugstage}`,
+              },
+            },
+          },
+        }),
+      ]);
+
+      if (rechnung.kunde.email) {
+        const email = erstelleMahnEmail(stufe, {
+          kundenname: rechnung.kunde.name,
+          nummer: rechnung.nummer,
+          rechnungsdatum: rechnung.createdAt.toLocaleDateString("de-DE"),
+          zahlungsziel: rechnung.zahlungsziel.toLocaleDateString("de-DE"),
+          brutto: offenerBetrag.toFixed(2).replace(".", ",") + " EUR",
+          tenantname: tenant?.name ?? "",
+          iban: tenant?.bankIban ?? undefined,
+          neue_frist_datum: berechneNeueFrist(rechnung.zahlungsziel, MAHNSTUFE_TAGE[stufe]),
+          inkasso_datum: berechneNeueFrist(rechnung.zahlungsziel, 42),
+          mahngebuehr: mahngebuehr.toFixed(2).replace(".", ",") + " EUR",
+          verzugszinsen: verzugszinsen.toFixed(2).replace(".", ",") + " EUR",
+          gesamtbetrag: (offenerBetrag + mahngebuehr + verzugszinsen).toFixed(2).replace(".", ",") + " EUR",
+        });
+        sendMail({ to: rechnung.kunde.email, subject: email.betreff, html: email.html }).catch(
+          (err: unknown) => console.error("[KI-Tool] Mahnung E-Mail fehlgeschlagen:", err)
+        );
+        return `Mahnung (${stufe}) für ${rechnung.kunde.name}, Rechnung ${rechnung.nummer}, wurde erstellt und an ${rechnung.kunde.email} gesendet.`;
+      }
+
+      return `Mahnung (${stufe}) für ${rechnung.kunde.name}, Rechnung ${rechnung.nummer}, wurde erstellt. Kein E-Mail-Versand (keine E-Mail-Adresse hinterlegt).`;
     }
 
     default:
