@@ -75,7 +75,7 @@ async function buildWorkbookBuffer(options: {
 
 async function buildRequest(buffer: Buffer): Promise<Request> {
   const formData = new FormData()
-  const blob = new Blob([buffer], {
+  const blob = new Blob([new Uint8Array(buffer)], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   })
   formData.append("file", blob, "import.xlsx")
@@ -119,7 +119,8 @@ describe("POST /api/wartung/contracts/import/excel", () => {
   describe("Authentifizierung", () => {
     it("gibt 401 zurück wenn keine Session vorhanden", async () => {
       const { auth } = await import("@/lib/auth")
-      vi.mocked(auth).mockResolvedValueOnce(null)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.mocked(auth).mockResolvedValueOnce(null as any)
 
       const { POST } = await import(
         "@/app/api/wartung/contracts/import/excel/route"
