@@ -3,23 +3,31 @@ import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { getTenantDb } from "@/lib/db"
 import { optimizeWartungsplan } from "@/lib/wartung/ai-optimizer"
+import {
+  generateEvents,
+  filterConstraints,
+  assignEvents,
+  validatePlan,
+  generateReport,
+  loadSchoolHolidays,
+  type MaintenanceLeaseWithRelations,
+  type TechnicianInput,
+} from "@/lib/wartung/planning-engine"
 import type { PlanningOptimizerInput } from "@/lib/wartung/prompts/planning-optimizer"
 
 const generateSchema = z.object({
   year: z.coerce.number().int().min(2000).max(2100),
+  bundesland: z.string().min(2).max(6).optional().default("HH"),
+  skipAiOptimization: z.boolean().optional().default(false),
 })
 
 /**
- * POST /api/wartung/plans/generate — Jahresplan per KI generieren.
+ * POST /api/wartung/plans/generate — Jahresplan generieren.
  *
- * Body: { year: number }
+ * Body: { year: number, bundesland?: string, skipAiOptimization?: boolean }
  *
- * Ablauf:
- * 1. Bestehenden Entwurfsplan für das Jahr löschen (falls vorhanden)
- * 2. Neuen AnnualPlan anlegen
- * 3. Alle aktiven Leistungen aus aktiven Verträgen laden
- * 4. Für jeden Monat des Jahres: KI-Optimierung ausführen
- * 5. Ergebnisse als AnnualPlanEntry speichern
+ * Wenn skipAiOptimization=true: deterministischer Pfad (Layer 1-2-4-5)
+ * Wenn skipAiOptimization=false (Standard): KI-Optimierung (Layer 3)
  */
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -37,7 +45,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { year } = parsed.data
+  const { year, bundesland, skipAiOptimization } = parsed.data
 
   const db = getTenantDb(session.user.tenantId)
 
@@ -110,6 +118,65 @@ export async function POST(req: NextRequest) {
       year,
       entriesCreated: 0,
       message: "Keine aktiven Leistungen gefunden. Leerer Plan wurde angelegt.",
+    })
+  }
+
+  // ── Deterministischer Pfad (skipAiOptimization=true) ──────────────────────
+  if (skipAiOptimization) {
+    const techInput: TechnicianInput[] = technicians.map((t) => ({
+      id: t.id,
+      name: t.name,
+      qualifications: t.qualifications,
+      maxDailyHours: t.maxDailyHours,
+    }))
+
+    const leasesWithRelations = leases as unknown as MaintenanceLeaseWithRelations[]
+
+    const schoolHolidays = await loadSchoolHolidays(bundesland, year)
+
+    const events = generateEvents(leasesWithRelations, year)
+    const filtered = filterConstraints(events, techInput, schoolHolidays, [], year)
+    const { entries: assignedEntries, unplannable } = assignEvents(filtered, techInput, year)
+    const validation = validatePlan(assignedEntries)
+    const report = generateReport(
+      assignedEntries,
+      techInput,
+      year,
+      unplannable.map((u) => ({ leaseId: u.event.leaseId, reason: u.reason }))
+    )
+
+    const dbEntries = assignedEntries.map((e) => ({
+      planId: plan.id,
+      leaseId: e.leaseId,
+      technicianId: e.technicianId,
+      scheduledDate: e.scheduledDate,
+      estimatedHours: e.estimatedHours,
+      status: "PLANNED" as const,
+      conflictStatus: validation.errors.find((err) => err.leaseId === e.leaseId)
+        ? "conflict"
+        : null,
+      conflictDetails:
+        validation.errors.find((err) => err.leaseId === e.leaseId)?.message ?? null,
+    }))
+
+    if (dbEntries.length > 0) {
+      await db.annualPlanEntry.createMany({ data: dbEntries })
+    }
+
+    return NextResponse.json({
+      planId: plan.id,
+      year,
+      entriesCreated: dbEntries.length,
+      message: `Deterministischer Plan für ${year} generiert.`,
+      validation: {
+        valid: validation.valid,
+        errorCount: validation.errors.length,
+        warningCount: validation.warnings.length,
+      },
+      report: {
+        kpis: report.kpis,
+        unplannableCount: unplannable.length,
+      },
     })
   }
 
