@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { getTenantDb } from "@/lib/db"
-import { prisma } from "@/lib/db"
 import ExcelJS from "exceljs"
 
 interface RowError {
@@ -28,6 +27,12 @@ interface LeaseRow {
   seasonalPreference?: string
   legalBasis?: string
   legalDeadline?: string
+  /**
+   * Optionale Spalte 8: 1-basierter Verweis auf eine Datenzeile in Sheet 3.
+   * Wenn gesetzt, gilt diese Leistung nur für den referenzierten Vertrag.
+   * Wenn nicht gesetzt (0 oder leer), gilt die Leistung für alle Verträge.
+   */
+  contractLine?: number
 }
 
 interface ContractRow {
@@ -43,7 +48,7 @@ interface ContractRow {
  * POST /api/wartung/contracts/import/excel — Excel-Upload (exceljs)
  *
  * Sheet 1: Objekte (Name, Adresse, Stadt, PLZ, Gebäudetyp, Ansprechpartner, Zugangszeiten)
- * Sheet 2: Leistungen (Anlagentyp, Intervall in Monaten, Qualifikation, Dauer in h, Saison, Rechtsgrundlage, Rechtl. Frist)
+ * Sheet 2: Leistungen (Anlagentyp, Intervall in Monaten, Qualifikation, Dauer in h, Saison, Rechtsgrundlage, Rechtl. Frist, [Vertrag-Zeile])
  * Sheet 3: Vertragsdaten (Vertragsnummer, Laufzeit von, Laufzeit bis, Kundenname, Objekt-Zeile)
  *
  * Alle Sheets werden vollständig validiert bevor irgendwas in die DB geschrieben wird.
@@ -119,12 +124,16 @@ export async function POST(req: NextRequest) {
       const seasonalPreference = String(row.getCell(5).value ?? "").trim() || undefined
       const legalBasis = String(row.getCell(6).value ?? "").trim() || undefined
       const legalDeadline = String(row.getCell(7).value ?? "").trim() || undefined
+      // Spalte 8 (optional): 1-basierter Verweis auf Sheet-3-Datenzeile.
+      // Leer oder 0 → Leistung gilt für alle Verträge.
+      const contractLineRaw = parseInt(String(row.getCell(8).value ?? "0"), 10)
+      const contractLine = isNaN(contractLineRaw) || contractLineRaw <= 0 ? undefined : contractLineRaw
 
       if (!serviceType) errors.push({ sheet: "Leistungen", row: rowNumber, error: "Anlagentyp fehlt" })
       if (!intervalMonths || intervalMonths <= 0) errors.push({ sheet: "Leistungen", row: rowNumber, error: "Intervall muss > 0 sein" })
       if (!estimatedHours || estimatedHours <= 0) errors.push({ sheet: "Leistungen", row: rowNumber, error: "Dauer muss > 0 sein" })
 
-      leaseRows.push({ serviceType, intervalMonths, qualificationRequired, estimatedHours, seasonalPreference, legalBasis, legalDeadline })
+      leaseRows.push({ serviceType, intervalMonths, qualificationRequired, estimatedHours, seasonalPreference, legalBasis, legalDeadline, contractLine })
     })
   }
 
@@ -174,8 +183,9 @@ export async function POST(req: NextRequest) {
 
   // ── Import-Phase: atomare Transaktion ──────────────────────────────────────
   const tenantId = session.user.tenantId
+  const db = getTenantDb(tenantId)
 
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await db.$transaction(async (tx) => {
     // Objekte anlegen
     const createdObjects = await Promise.all(
       objectRows.map((row) =>
@@ -187,8 +197,12 @@ export async function POST(req: NextRequest) {
     )
 
     // Verträge mit Leistungen anlegen
+    // Jeder Vertrag erhält nur Leistungen, die für ihn bestimmt sind:
+    // - contractLine nicht gesetzt (undefined) → Leistung gilt für alle Verträge
+    // - contractLine gesetzt → Leistung gilt nur für den Vertrag mit diesem 1-basierten Index
     const createdContracts = await Promise.all(
-      contractRows.map((row) => {
+      contractRows.map((row, contractIndex) => {
+        const contractLine = contractIndex + 1
         const objectId = createdObjects[row.objectIndex].id
         return tx.maintenanceContract.create({
           data: {
@@ -199,7 +213,12 @@ export async function POST(req: NextRequest) {
             startDate: row.startDate,
             endDate: row.endDate,
             leases: {
-              create: leaseRows.filter((l) => l.serviceType && l.intervalMonths > 0),
+              create: leaseRows.filter(
+                (l) =>
+                  l.serviceType &&
+                  l.intervalMonths > 0 &&
+                  (l.contractLine === undefined || l.contractLine === contractLine)
+              ),
             },
           },
           select: { id: true },
