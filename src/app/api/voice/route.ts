@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
   let erkannterIntent: string | null = null;
 
   try {
-    let currentMessages = [...messages];
+    const currentMessages = [...messages];
     const MAX_TOOL_ROUNDS = 5;
 
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
