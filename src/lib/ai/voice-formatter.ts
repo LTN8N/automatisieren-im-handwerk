@@ -130,6 +130,35 @@ export function formatiereVoiceAntwort(
 }
 
 /**
+ * Formatiert eine Wartungs-Fälligkeitsliste für Voice-Ausgabe.
+ * Max 3 Einträge werden genannt, der Rest als "und X weitere".
+ */
+export function formatiereWartungsFaelligkeitVoice(
+  eintraege: Array<{ gebaeude: string; leistung: string; datum: string }>,
+): string {
+  if (eintraege.length === 0) {
+    return "Diese Woche steht nichts an. Alles erledigt.";
+  }
+
+  const MAX_NENNEN = 3;
+  const sichtbar = eintraege.slice(0, MAX_NENNEN);
+  const rest = eintraege.length - MAX_NENNEN;
+
+  const teile = sichtbar.map(
+    (e) => `Gebäude ${e.gebaeude}, ${e.leistung}, am ${e.datum}`,
+  );
+
+  let antwort = teile.join(". ");
+  if (rest > 0) {
+    antwort += `. Und ${rest} weitere — schau ins Dashboard für die vollständige Liste.`;
+  } else {
+    antwort += ".";
+  }
+
+  return antwort;
+}
+
+/**
  * Erstellt eine Voice-optimierte Bestaetigungsfrage.
  * Format: "<Aktion>, [Betrag,] richtig?"
  */

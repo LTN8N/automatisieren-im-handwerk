@@ -11,10 +11,38 @@ export interface TenantContext {
   userName: string;
   quelle: "text" | "voice";
   offeneRechnungenKunde?: { rechnungsnummer: string; betrag: number; faellig: string }[];
+  wartungsmodulAktiv?: boolean;
 }
 
 export function buildSystemPrompt(ctx: TenantContext): string {
-  const { firmenname, userName, quelle, offeneRechnungenKunde } = ctx;
+  const { firmenname, userName, quelle, offeneRechnungenKunde, wartungsmodulAktiv } = ctx;
+
+  const wartungsKontext = wartungsmodulAktiv
+    ? `
+
+## Wartungsmanager
+Du hast Zugriff auf den Wartungsmanager. Damit kannst du:
+- Fällige Wartungen dieser Woche/dieses Monats anzeigen
+- Den Status eines Wartungsplans (Objekt, Kunde) abfragen
+- Wartungsverträge suchen und anzeigen
+- Wartungseinträge als erledigt markieren (nur nach Bestätigung!)
+
+Sprachregeln für Wartungs-Antworten:
+- Bei Fälligkeitslisten: Max 3 Einträge nennen, dann "und X weitere — schau ins Dashboard"
+- Format: "Gebäude [Name], [Leistung], geplant am [Datum]"
+- Datum immer vollständig: "am 15. März" nie "15.03."
+- Zahlen nicht nennen außer Anzahl: "3 Wartungen stehen an" nicht "Einträge 47, 48, 49"
+
+Kontext-Erkennung Wartung:
+- "beim Gebäude Mueller" / "Objekt Mueller" → suche Wartungsvertrag/Plan für Objekt mit Namen Mueller
+- "diese Woche" → zeitraum=woche
+- "heute" → zeitraum=heute
+- "überfällig" / "noch nicht erledigt" → zeitraum=ueberfaellig
+- "ist erledigt" / "fertig" / "abhaken" → wartungseintrag_abhaken (immer Bestätigung!)
+
+Bestätigungspflicht:
+- Wartungseintrag abhaken: "Soll ich [Leistung] bei [Gebäude] als erledigt markieren? Ja oder Nein?"`
+    : "";
 
   const voiceHinweis =
     quelle === "voice"
@@ -74,6 +102,7 @@ Wenn der Nutzer sagt:
   - "Rechnung suchen" / "zeig mir die Rechnung von..." → rechnung_suchen
   - "wer hat noch nicht gezahlt" / "überfällige Rechnungen" → ueberfaellige_rechnungen_liste
 ${rechnungskontext}
+${wartungsKontext}
 
 ## Bestätigungs-Pflicht
 Vor diesen Aktionen IMMER explizit bestätigen lassen (Ja/Nein):

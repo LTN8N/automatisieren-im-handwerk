@@ -228,6 +228,75 @@ export const INTENT_KATALOG: IntentDefinition[] = [
     ],
     kritisch: false,
   },
+
+  // -------------------------------------------------------------------------
+  // Wartungsmanager-Intents
+  // -------------------------------------------------------------------------
+  {
+    id: "wartung_faellig_abfragen",
+    beschreibung: "Fällige oder überfällige Wartungseinträge abfragen",
+    beispiele: [
+      "Welche Wartungen sind diese Woche fällig?",
+      "Was steht diese Woche an?",
+      "Gibt es überfällige Wartungen?",
+      "Was ist noch offen bei den Wartungen?",
+      "Welche Wartungen stehen im März an?",
+      "Was ist beim Gebäude Mueller zu tun?",
+    ],
+    trigger: [
+      /\b(wartung|wartungen)\s+(f.+llig|diese\s+woche|diesen\s+monat|.+berfällig|offen)\b/i,
+      /\bwas\s+steht\s+(an|diese\s+woche|heute)\b/i,
+      /\b(.+berfällige?|f.+llige?)\s+wartung\b/i,
+    ],
+    kritisch: false,
+  },
+  {
+    id: "wartungsplan_status",
+    beschreibung: "Status eines Wartungsplans oder Objekts abfragen",
+    beispiele: [
+      "Wie weit sind wir mit Gebäude Mueller?",
+      "Sind alle März-Wartungen bei Schmidt durch?",
+      "Was ist der Stand beim Schulz-Objekt?",
+      "Wie viele Wartungen sind beim Weber schon erledigt?",
+    ],
+    trigger: [
+      /\b(wie\s+weit|wie\s+viele|wie\s+ist\s+der\s+stand|stand)\b.*\b(wartung|geb.ude|objekt)\b/i,
+      /\bwartungsplan\s+(status|stand|fortschritt)\b/i,
+      /\bsind\s+alle\s+\w+-wartungen?\s+(durch|erledigt|fertig)\b/i,
+    ],
+    kritisch: false,
+  },
+  {
+    id: "vertrag_suchen",
+    beschreibung: "Wartungsvertrag suchen oder anzeigen",
+    beispiele: [
+      "Zeig den Wartungsvertrag von Schmidt",
+      "Was steht im Vertrag Mueller?",
+      "Vertrag Bäckerei Schulz",
+      "Welche Objekte hat Weber im Vertrag?",
+    ],
+    trigger: [
+      /\b(zeig|oeffne?|was\s+steht|vertrag)\s+(den\s+)?(wartungs)?vertrag\b/i,
+      /\b(wartungs)?vertrag\s+(von|bei|fuer)\b/i,
+    ],
+    kritisch: false,
+  },
+  {
+    id: "wartungseintrag_abhaken",
+    beschreibung: "Wartungseintrag als erledigt markieren",
+    beispiele: [
+      "Heizungsinspektion Gebäude Mueller ist erledigt",
+      "Wartung beim Schmidt abhaken",
+      "Das ist fertig — Klimaanlage Weber",
+      "Markier die Heizungswartung als erledigt",
+    ],
+    trigger: [
+      /\b(erledigt|fertig|abhaken?|abgehakt|gemacht|durch)\b.*\b(wartung|inspektion|heizung|klima)\b/i,
+      /\bwartung\b.*\b(erledigt|fertig|abhaken?)\b/i,
+      /\bals\s+erledigt\s+markier\b/i,
+    ],
+    kritisch: true,
+  },
 ];
 
 /**

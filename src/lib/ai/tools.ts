@@ -244,6 +244,102 @@ export const HANDWERK_TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
       },
     },
   },
+
+  // -------------------------------------------------------------------------
+  // Wartungsmanager-Tools
+  // -------------------------------------------------------------------------
+  {
+    type: "function",
+    function: {
+      name: "wartung_faellig_liste",
+      description:
+        "Gibt fällige und überfällige Wartungseinträge zurück. Für Fragen wie 'Was steht diese Woche an?' oder 'Welche Wartungen sind überfällig?'",
+      parameters: {
+        type: "object",
+        properties: {
+          zeitraum: {
+            type: "string",
+            enum: ["heute", "woche", "monat", "ueberfaellig"],
+            description: "Welcher Zeitraum: heute, diese Woche, diesen Monat oder überfällige",
+          },
+          technikerId: {
+            type: "string",
+            description: "Optional: Nur Einträge für diesen Techniker",
+          },
+          limit: {
+            type: "number",
+            description: "Max Anzahl (Standard: 10)",
+          },
+        },
+        required: ["zeitraum"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "wartungsplan_status",
+      description:
+        "Zeigt den Status eines Wartungsplans: wie viele Einträge erledigt, offen, überfällig.",
+      parameters: {
+        type: "object",
+        properties: {
+          planId: {
+            type: "string",
+            description: "ID des Wartungsplans",
+          },
+          objektId: {
+            type: "string",
+            description: "Alternativ: ID des Wartungsobjekts (findet zugehörigen Plan)",
+          },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "vertrag_suchen",
+      description:
+        "Sucht Wartungsverträge anhand des Kundennamens oder Objektnamens.",
+      parameters: {
+        type: "object",
+        properties: {
+          suchbegriff: {
+            type: "string",
+            description: "Kundenname, Objektname oder Teil davon",
+          },
+        },
+        required: ["suchbegriff"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "wartungseintrag_abhaken",
+      description:
+        "KRITISCH: Markiert einen Wartungseintrag als erledigt. Nur nach expliziter Bestätigung ausführen.",
+      parameters: {
+        type: "object",
+        properties: {
+          eintragId: {
+            type: "string",
+            description: "ID des Wartungseintrags",
+          },
+          bestaetigt: {
+            type: "boolean",
+            description: "Muss true sein",
+          },
+          notiz: {
+            type: "string",
+            description: "Optionale Notiz zur Durchführung",
+          },
+        },
+        required: ["eintragId", "bestaetigt"],
+      },
+    },
+  },
 ];
 
 export const KRITISCHE_TOOLS = new Set([
@@ -251,6 +347,7 @@ export const KRITISCHE_TOOLS = new Set([
   "dokument_versenden",
   "position_loeschen",
   "rechnung_status_aendern",
+  "wartungseintrag_abhaken",
 ]);
 
 export const TOOL_BESCHREIBUNG: Record<string, string> = {
@@ -267,4 +364,8 @@ export const TOOL_BESCHREIBUNG: Record<string, string> = {
   position_hinzufuegen: "Position hinzufuegen",
   position_aendern: "Position aendern",
   position_loeschen: "Position loeschen",
+  wartung_faellig_liste: "Fällige Wartungen anzeigen",
+  wartungsplan_status: "Wartungsplan-Status abfragen",
+  vertrag_suchen: "Wartungsvertrag suchen",
+  wartungseintrag_abhaken: "Wartung als erledigt markieren",
 };
