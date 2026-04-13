@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
-import { getTenantDb } from "@/lib/db"
+import { getTenantDb, prisma } from "@/lib/db"
 import { optimizeWartungsplan } from "@/lib/wartung/ai-optimizer"
 import {
   generateEvents,
@@ -74,14 +74,16 @@ export async function POST(req: NextRequest) {
   })
 
   // Aktive Leistungen aus aktiven Verträgen laden
-  const leases = await db.maintenanceLease.findMany({
+  // MaintenanceLease hat kein eigenes tenantId — Filter über contract.object
+  const leases = await prisma.maintenanceLease.findMany({
     where: {
       contract: {
+        object: { tenantId: session.user.tenantId },
         status: "ACTIVE",
-        startDate: { lte: new Date(`${year}-12-31`) },
+        startDate: { lte: new Date(year, 11, 31) },
         OR: [
           { endDate: null },
-          { endDate: { gte: new Date(`${year}-01-01`) } },
+          { endDate: { gte: new Date(year, 0, 1) } },
         ],
       },
     },
