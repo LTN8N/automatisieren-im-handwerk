@@ -127,6 +127,7 @@ export default function AngebotDetailPage() {
     setLoading(false)
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { laden() }, [angebotId])
 
   const startEdit = () => {

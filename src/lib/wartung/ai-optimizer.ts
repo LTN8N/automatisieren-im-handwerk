@@ -187,11 +187,6 @@ export async function optimizeWartungsplan(
     const day = e.deadlineDate ? parseInt(e.deadlineDate.slice(8, 10), 10) : 15;
     return day <= 15;
   });
-  const secondHalf = input.events.filter((e) => {
-    const day = e.deadlineDate ? parseInt(e.deadlineDate.slice(8, 10), 10) : 16;
-    return day > 15;
-  });
-
   // Sicherstellen dass jedes Event in genau einem Batch landet
   const firstHalfIds = new Set(firstHalf.map((e) => e.id));
   const secondHalfSafe = input.events.filter((e) => !firstHalfIds.has(e.id));

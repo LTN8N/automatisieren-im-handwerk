@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   DndContext,
   DragStartEvent,
@@ -16,7 +16,7 @@ import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { ConflictDialog } from "./conflict-dialog";
 import { EntryDetailModal } from "./entry-detail-modal";
 import { ANLAGENTYP_COLORS, MONTH_NAMES, PlanEntry, Technician, ConflictStatus } from "./types";
-import { AlertTriangle, AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 interface WartungsKalenderProps {

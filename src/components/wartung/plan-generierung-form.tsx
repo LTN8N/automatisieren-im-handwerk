@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useLocaleRouter } from "@/hooks/use-locale-router";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

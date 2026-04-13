@@ -13,7 +13,6 @@ import {
   Clock,
   Trash2,
   Save,
-  MapPin,
   Scale,
   Sparkles,
 } from "lucide-react";

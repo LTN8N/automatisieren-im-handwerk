@@ -148,7 +148,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   }
 
   // Eintrag aktualisieren — tenant-scoped: planId-Filter stellt Zugehörigkeit sicher
-  const updated = await db.annualPlanEntry.update({
+  await db.annualPlanEntry.update({
     where: { id: entryId, planId },
     data: {
       scheduledDate: new Date(scheduledDate),

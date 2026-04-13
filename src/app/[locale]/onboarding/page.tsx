@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Check, Building2, Mail, PartyPopper, ChevronRight, ArrowLeft, SkipForward } from "lucide-react";
 
 // --- Typen ---

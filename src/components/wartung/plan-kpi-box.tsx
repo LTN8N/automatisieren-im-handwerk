@@ -8,13 +8,6 @@ interface PlanKpiBoxProps {
   year: number;
 }
 
-function getMonthEntries(entries: PlanEntry[], techId: string, month: number): PlanEntry[] {
-  return entries.filter((e) => {
-    const d = new Date(e.scheduledDate);
-    return d.getMonth() === month && e.technicianId === techId;
-  });
-}
-
 export function PlanKpiBox({ entries, technicians, year }: PlanKpiBoxProps) {
   const totalEntries = entries.length;
   const conflicts = entries.filter((e) => e.conflictStatus === "KONFLIKT").length;

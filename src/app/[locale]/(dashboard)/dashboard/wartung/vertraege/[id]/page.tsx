@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { useTranslations } from "next-intl";
 import { useLocaleRouter } from "@/hooks/use-locale-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,7 +55,6 @@ const INTERVAL_LABELS: Record<number, string> = {
 };
 
 export default function VertragDetailPage() {
-  const t = useTranslations("wartung");
   const router = useLocaleRouter();
   const params = useParams();
   const vertragId = params?.id as string;

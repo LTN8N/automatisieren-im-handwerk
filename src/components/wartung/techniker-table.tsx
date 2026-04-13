@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,8 +31,6 @@ interface NewTechnikerForm {
 
 export function TechnikerTable({ techniker: initialTechniker }: TechnikerTableProps) {
   const t = useTranslations("wartung");
-  const router = useRouter();
-
   const [techniker, setTechniker] = useState(initialTechniker);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
