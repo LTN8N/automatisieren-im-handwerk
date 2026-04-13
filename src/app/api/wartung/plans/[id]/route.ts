@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
-import { getTenantDb } from "@/lib/db"
+import { getTenantDb, prisma } from "@/lib/db"
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -66,7 +66,8 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
   }
 
   // Einträge zuerst löschen, dann den Plan
-  await db.annualPlanEntry.deleteMany({ where: { planId: id } })
+  // AnnualPlanEntry hat kein tenantId — prisma direkt nutzen
+  await prisma.annualPlanEntry.deleteMany({ where: { planId: id } })
   await db.annualPlan.delete({ where: { id } })
 
   return NextResponse.json({ success: true })
