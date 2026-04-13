@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { useLocaleRouter } from "@/hooks/use-locale-router";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, Calendar, CheckCircle, Clock, FileText } from "lucide-react";
+import { ArrowLeft, Plus, Calendar, CheckCircle, Clock, FileText, Trash2 } from "lucide-react";
 
 interface Plan {
   id: string;
@@ -19,8 +20,24 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof
   COMPLETED: { label: "Abgeschlossen", color: "bg-gray-100 text-gray-700", icon: FileText },
 };
 
-export function PlaeneList({ plaene }: { plaene: Plan[] }) {
+export function PlaeneList({ plaene: initialPlaene }: { plaene: Plan[] }) {
   const router = useLocaleRouter();
+  const [plaene, setPlaene] = useState(initialPlaene);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  async function handleDelete(e: React.MouseEvent, planId: string) {
+    e.stopPropagation();
+    if (!confirm("Plan wirklich löschen? Alle Einträge werden entfernt.")) return;
+    setDeleting(planId);
+    const res = await fetch(`/api/wartung/plans/${planId}`, { method: "DELETE" });
+    if (res.ok) {
+      setPlaene(plaene.filter((p) => p.id !== planId));
+    } else {
+      const data = await res.json();
+      alert(data.error || "Fehler beim Löschen.");
+    }
+    setDeleting(null);
+  }
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -75,9 +92,22 @@ export function PlaeneList({ plaene }: { plaene: Plan[] }) {
                     </p>
                   </div>
                 </div>
-                <span className={`rounded-full px-3 py-1 text-xs font-medium ${config.color}`}>
-                  {config.label}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${config.color}`}>
+                    {config.label}
+                  </span>
+                  {p.status !== "RELEASED" && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => handleDelete(e, p.id)}
+                      disabled={deleting === p.id}
+                      className="text-red-500 hover:text-red-700 rounded-xl"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             );
           })}
