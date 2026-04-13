@@ -4,7 +4,8 @@ import { useTranslations } from "next-intl";
 import { useLocaleRouter } from "@/hooks/use-locale-router";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Building2, FileText, Users, CalendarDays, Plus, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { Building2, FileText, Users, CalendarDays, Plus, Sparkles, Trash2 } from "lucide-react";
 
 interface AnnualPlan {
   id: string;
@@ -35,6 +36,19 @@ export function WartungOverview({
 }: WartungOverviewProps) {
   const t = useTranslations("wartung");
   const router = useLocaleRouter();
+  const [plaene, setPlaene] = useState(jahresplaene);
+
+  async function handleDeletePlan(e: React.MouseEvent, planId: string) {
+    e.stopPropagation();
+    if (!confirm("Plan wirklich löschen? Alle Einträge werden entfernt.")) return;
+    const res = await fetch(`/api/wartung/plans/${planId}`, { method: "DELETE" });
+    if (res.ok) {
+      setPlaene(plaene.filter((p) => p.id !== planId));
+    } else {
+      const data = await res.json();
+      alert(data.error || "Fehler beim Löschen.");
+    }
+  }
 
   const kpis = [
     {
@@ -63,7 +77,7 @@ export function WartungOverview({
     },
     {
       label: t("kpiJahresplaene"),
-      value: jahresplaene.length,
+      value: plaene.length,
       icon: CalendarDays,
       href: "/dashboard/wartung",
       color: "text-orange-600",
@@ -123,7 +137,7 @@ export function WartungOverview({
             {t("letzteJahresplaene")}
           </h2>
         </div>
-        {jahresplaene.length === 0 ? (
+        {plaene.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-4 py-10 px-4 text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
               <CalendarDays className="h-6 w-6 text-muted-foreground" />
@@ -145,7 +159,7 @@ export function WartungOverview({
           </div>
         ) : (
           <div className="divide-y">
-            {jahresplaene.map((plan) => (
+            {plaene.map((plan) => (
               <div
                 key={plan.id}
                 className="flex cursor-pointer items-center justify-between px-4 py-3 transition-colors hover:bg-muted/40"
@@ -154,13 +168,24 @@ export function WartungOverview({
                 <span className="font-medium text-sm">
                   {t("planJahr", { year: plan.year })}
                 </span>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    PLAN_STATUS_COLORS[plan.status] ?? "bg-gray-100 text-gray-700"
-                  }`}
-                >
-                  {t(`planStatus${plan.status}` as Parameters<typeof t>[0])}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                      PLAN_STATUS_COLORS[plan.status] ?? "bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    {t(`planStatus${plan.status}` as Parameters<typeof t>[0])}
+                  </span>
+                  {plan.status !== "RELEASED" && (
+                    <button
+                      onClick={(e) => handleDeletePlan(e, plan.id)}
+                      className="rounded-lg p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                      title="Plan löschen"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
