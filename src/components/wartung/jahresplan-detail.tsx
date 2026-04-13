@@ -322,6 +322,7 @@ export function JahresplanDetail({ plan, technicians }: JahresplanDetailProps) {
             isReadOnly={isReadOnly}
             selectedTechnicianIds={selectedTechnicianIds}
             selectedAnlagentypen={selectedAnlagentypen}
+            technicians={technicians}
             onEntriesChange={setEntries}
           />
         </div>

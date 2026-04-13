@@ -42,7 +42,7 @@ export function PlanGenerierungForm() {
       const res = await fetch("/api/wartung/plans/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ year }),
+        body: JSON.stringify({ year, bundesland, skipAiOptimization: true }),
       });
 
       const data = await res.json();

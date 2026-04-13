@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
-import { getTenantDb } from "@/lib/db"
+import { getTenantDb, prisma } from "@/lib/db"
 import { z } from "zod"
 
 type RouteParams = { params: Promise<{ id: string; entryId: string }> }
@@ -161,5 +161,50 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     },
   })
 
-  return NextResponse.json({ entry: updated, conflict })
+  // Vollständigen Eintrag mit Relationen zurückgeben
+  const full = await prisma.annualPlanEntry.findUnique({
+    where: { id: entryId },
+    include: {
+      technician: { select: { id: true, name: true, qualifications: true } },
+      lease: {
+        include: {
+          contract: {
+            include: {
+              object: { select: { id: true, name: true, address: true, city: true, postalCode: true } },
+            },
+          },
+        },
+      },
+    },
+  })
+
+  return NextResponse.json({ entry: full, conflict })
+}
+
+/** DELETE /api/wartung/plans/:id/entries/:entryId — Eintrag aus Plan entfernen */
+export async function DELETE(_req: NextRequest, { params }: RouteParams) {
+  const session = await auth()
+  if (!session?.user?.tenantId) {
+    return NextResponse.json({ error: "Nicht authentifiziert." }, { status: 401 })
+  }
+
+  const { id: planId, entryId } = await params
+  const db = getTenantDb(session.user.tenantId)
+
+  const plan = await db.annualPlan.findFirst({ where: { id: planId } })
+  if (!plan) {
+    return NextResponse.json({ error: "Plan nicht gefunden." }, { status: 404 })
+  }
+
+  if (plan.status === "RELEASED") {
+    return NextResponse.json(
+      { error: "Einträge freigegebener Pläne können nicht entfernt werden." },
+      { status: 422 }
+    )
+  }
+
+  // AnnualPlanEntry hat kein tenantId — prisma direkt nutzen, Plan-Zugehörigkeit ist geprüft
+  await prisma.annualPlanEntry.delete({ where: { id: entryId } })
+
+  return NextResponse.json({ success: true })
 }

@@ -14,7 +14,8 @@ import {
 import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { ConflictDialog } from "./conflict-dialog";
-import { ANLAGENTYP_COLORS, MONTH_NAMES, PlanEntry, ConflictStatus } from "./types";
+import { EntryDetailModal } from "./entry-detail-modal";
+import { ANLAGENTYP_COLORS, MONTH_NAMES, PlanEntry, Technician, ConflictStatus } from "./types";
 import { AlertTriangle, AlertCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -25,6 +26,7 @@ interface WartungsKalenderProps {
   isReadOnly: boolean;
   selectedTechnicianIds: string[];
   selectedAnlagentypen: string[];
+  technicians: Technician[];
   onEntriesChange: (entries: PlanEntry[]) => void;
 }
 
@@ -54,9 +56,10 @@ interface EntryChipProps {
   entry: PlanEntry;
   isReadOnly: boolean;
   dragOverStatus: ConflictStatus | null;
+  onEntryClick?: (entry: PlanEntry) => void;
 }
 
-function EntryChip({ entry, isReadOnly, dragOverStatus }: EntryChipProps) {
+function EntryChip({ entry, isReadOnly, dragOverStatus, onEntryClick }: EntryChipProps) {
   const serviceType = getServiceType(entry);
   const color = ANLAGENTYP_COLORS[serviceType] ?? ANLAGENTYP_COLORS.DEFAULT;
 
@@ -89,6 +92,10 @@ function EntryChip({ entry, isReadOnly, dragOverStatus }: EntryChipProps) {
         ${isReadOnly ? "cursor-default" : "hover:opacity-90 active:cursor-grabbing"}
       `}
       title={`${entry.lease?.contract?.object?.name ?? ""} — ${entry.estimatedHours}h\n${entry.technician?.name ?? ""}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        onEntryClick?.(entry);
+      }}
     >
       <span className="truncate block max-w-[80px]">
         {entry.lease?.contract?.object?.postalCode ?? "—"} {entry.lease?.contract?.object?.name?.slice(0, 8) ?? ""}
@@ -111,9 +118,10 @@ interface DayCellProps {
   isReadOnly: boolean;
   dragOverStatus: ConflictStatus | null;
   draggedEntryId: string | null;
+  onEntryClick?: (entry: PlanEntry) => void;
 }
 
-function DayCell({ date, entries, isReadOnly, dragOverStatus, draggedEntryId }: DayCellProps) {
+function DayCell({ date, entries, isReadOnly, dragOverStatus, draggedEntryId, onEntryClick }: DayCellProps) {
   const dateStr = toDateString(date);
   const isWeekend = date.getDay() === 0 || date.getDay() === 6;
 
@@ -150,6 +158,7 @@ function DayCell({ date, entries, isReadOnly, dragOverStatus, draggedEntryId }: 
           entry={entry}
           isReadOnly={isReadOnly}
           dragOverStatus={draggedEntryId === entry.id && isOver ? dragOverStatus : null}
+          onEntryClick={onEntryClick}
         />
       ))}
     </div>
@@ -166,6 +175,7 @@ interface MonthColumnProps {
   dragOverStatus: ConflictStatus | null;
   draggedEntryId: string | null;
   dragOverDate: string | null;
+  onEntryClick?: (entry: PlanEntry) => void;
 }
 
 function MonthColumn({
@@ -176,6 +186,7 @@ function MonthColumn({
   dragOverStatus,
   draggedEntryId,
   dragOverDate,
+  onEntryClick,
 }: MonthColumnProps) {
   const days = getDaysInMonth(year, month);
 
@@ -207,6 +218,7 @@ function MonthColumn({
               isReadOnly={isReadOnly}
               dragOverStatus={dragOverDate === ds ? dragOverStatus : null}
               draggedEntryId={draggedEntryId}
+              onEntryClick={onEntryClick}
             />
           );
         })}
@@ -240,6 +252,7 @@ export function WartungsKalender({
   isReadOnly,
   selectedTechnicianIds,
   selectedAnlagentypen,
+  technicians,
   onEntriesChange,
 }: WartungsKalenderProps) {
   const sensors = useSensors(
@@ -254,6 +267,20 @@ export function WartungsKalender({
     newDate: string;
     details: string[];
   } | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<PlanEntry | null>(null);
+
+  function handleEntryClick(entry: PlanEntry) {
+    if (draggedEntry) return; // Don't open modal during drag
+    setSelectedEntry(entry);
+  }
+
+  function handleEntryUpdate(updated: PlanEntry) {
+    onEntriesChange(entries.map((e) => (e.id === updated.id ? updated : e)));
+  }
+
+  function handleEntryDelete(entryId: string) {
+    onEntriesChange(entries.filter((e) => e.id !== entryId));
+  }
 
   // Gefilterte Einträge
   const filteredEntries = useMemo(() => {
@@ -421,6 +448,7 @@ export function WartungsKalender({
                   dragOverStatus={dragOverStatus}
                   draggedEntryId={draggedEntry?.id ?? null}
                   dragOverDate={dragOverDate}
+                  onEntryClick={handleEntryClick}
                 />
               );
             })}
@@ -438,6 +466,19 @@ export function WartungsKalender({
           details={pendingMove.details}
           onConfirm={handleConflictConfirm}
           onCancel={() => setPendingMove(null)}
+        />
+      )}
+
+      {/* Entry-Detail-Modal */}
+      {selectedEntry && (
+        <EntryDetailModal
+          entry={selectedEntry}
+          planId={planId}
+          technicians={technicians}
+          isReadOnly={isReadOnly}
+          onClose={() => setSelectedEntry(null)}
+          onUpdate={handleEntryUpdate}
+          onDelete={handleEntryDelete}
         />
       )}
     </>
