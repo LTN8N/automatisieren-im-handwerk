@@ -60,7 +60,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Nicht authentifiziert." }, { status: 401 })
   }
 
-  const formData = await req.formData()
+  let formData
+  try {
+    formData = await req.formData()
+  } catch {
+    return NextResponse.json({ error: "Ungültiges Request-Format. Multipart/form-data erwartet." }, { status: 400 })
+  }
   const file = formData.get("file")
 
   if (!file || typeof file === "string") {

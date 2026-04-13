@@ -1,13 +1,34 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { locales, defaultLocale } from "@/i18n/config";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
-  // Statische Assets und API-Routen durchlassen
+  // API-Routen: Rate-Limiting + CSRF-Schutz
+  if (pathname.startsWith("/api") && !pathname.startsWith("/api/auth")) {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0] ?? "unknown";
+    const { allowed } = checkRateLimit(ip, 120, 60_000); // 120 requests/minute
+    if (!allowed) {
+      return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429 });
+    }
+
+    // CSRF: Mutating requests müssen vom gleichen Origin kommen
+    const method = req.method;
+    if (method === "POST" || method === "PATCH" || method === "PUT" || method === "DELETE") {
+      const origin = req.headers.get("origin");
+      const host = req.headers.get("host");
+      if (origin && host && !origin.includes(host)) {
+        return NextResponse.json({ error: "Ungültiger Origin." }, { status: 403 });
+      }
+    }
+
+    return NextResponse.next();
+  }
+
+  // Statische Assets durchlassen
   if (
-    pathname.startsWith("/api") ||
     pathname.startsWith("/_next") ||
     pathname.includes(".")
   ) {

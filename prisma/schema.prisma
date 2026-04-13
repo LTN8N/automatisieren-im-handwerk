@@ -401,5 +401,7 @@ model AnnualPlanEntry {
   @@index([planId])
   @@index([technicianId])
   @@index([leaseId])
+  @@index([scheduledDate])
+  @@index([technicianId, scheduledDate])
   @@map("annual_plan_entries")
 }

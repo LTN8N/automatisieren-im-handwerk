@@ -4,14 +4,14 @@ import { getTenantDb } from "@/lib/db"
 import { z } from "zod"
 
 const objectSchema = z.object({
-  name: z.string().min(1, "Name ist erforderlich"),
-  address: z.string().min(1, "Adresse ist erforderlich"),
-  city: z.string().min(1, "Stadt ist erforderlich"),
-  postalCode: z.string().min(1, "PLZ ist erforderlich"),
-  buildingType: z.string().min(1, "Gebäudetyp ist erforderlich"),
-  contactName: z.string().optional(),
-  contactPhone: z.string().optional(),
-  accessNotes: z.string().optional(),
+  name: z.string().min(1, "Name ist erforderlich").max(200),
+  address: z.string().min(1, "Adresse ist erforderlich").max(500),
+  city: z.string().min(1, "Stadt ist erforderlich").max(100),
+  postalCode: z.string().min(1, "PLZ ist erforderlich").max(10),
+  buildingType: z.string().min(1, "Gebäudetyp ist erforderlich").max(50),
+  contactName: z.string().max(200).optional(),
+  contactPhone: z.string().max(50).optional(),
+  accessNotes: z.string().max(1000).optional(),
 })
 
 const PAGE_SIZE = 20
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
   const db = getTenantDb(session.user.tenantId)
   const { searchParams } = new URL(req.url)
-  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10))
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1)
   const search = searchParams.get("search") ?? ""
 
   const where: Record<string, unknown> = {}
@@ -83,6 +83,10 @@ export async function POST(req: NextRequest) {
   const db = getTenantDb(session.user.tenantId)
   const object = await db.maintenanceObject.create({
     data: { tenantId: session.user.tenantId, ...result.data },
+    select: {
+      id: true, name: true, address: true, city: true, postalCode: true,
+      buildingType: true, contactName: true, contactPhone: true, accessNotes: true, createdAt: true,
+    },
   })
 
   return NextResponse.json(object, { status: 201 })

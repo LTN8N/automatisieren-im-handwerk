@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
   const db = getTenantDb(session.user.tenantId)
   const { searchParams } = new URL(req.url)
-  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10))
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1)
   const year = searchParams.get("year") ? parseInt(searchParams.get("year")!, 10) : undefined
 
   const where: Record<string, unknown> = {}

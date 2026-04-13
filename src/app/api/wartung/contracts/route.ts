@@ -4,19 +4,19 @@ import { getTenantDb } from "@/lib/db"
 import { z } from "zod"
 
 const leaseSchema = z.object({
-  serviceType: z.string().min(1, "Anlagentyp ist erforderlich"),
-  intervalMonths: z.number().int().positive("Intervall muss positiv sein"),
-  estimatedHours: z.number().positive("Dauer muss positiv sein"),
-  qualificationRequired: z.string().optional(),
-  seasonalPreference: z.string().optional(),
-  legalBasis: z.string().optional(),
-  legalDeadline: z.string().optional(),
+  serviceType: z.string().min(1, "Anlagentyp ist erforderlich").max(300),
+  intervalMonths: z.number().int().positive("Intervall muss positiv sein").max(120),
+  estimatedHours: z.number().positive("Dauer muss positiv sein").max(100),
+  qualificationRequired: z.string().max(50).optional(),
+  seasonalPreference: z.string().max(50).optional(),
+  legalBasis: z.string().max(100).optional(),
+  legalDeadline: z.string().max(20).optional(),
 })
 
 const contractSchema = z.object({
   objectId: z.string().min(1, "Objekt-ID ist erforderlich"),
-  contractNumber: z.string().optional(),
-  customerName: z.string().min(1, "Kundenname ist erforderlich"),
+  contractNumber: z.string().max(50).optional(),
+  customerName: z.string().min(1, "Kundenname ist erforderlich").max(300),
   startDate: z.string().datetime({ offset: true }).or(z.string().date()),
   endDate: z.string().datetime({ offset: true }).or(z.string().date()).optional(),
   autoRenew: z.boolean().optional().default(false),
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 
   const db = getTenantDb(session.user.tenantId)
   const { searchParams } = new URL(req.url)
-  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10))
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1)
   const objectId = searchParams.get("objectId")
 
   const where: Record<string, unknown> = {}
