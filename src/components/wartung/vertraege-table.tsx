@@ -66,9 +66,13 @@ interface ImportRow {
 }
 
 interface ImportResult {
-  errors: ImportError[];
-  preview: ImportRow[];
+  success?: boolean;
+  errors?: ImportError[];
+  preview?: ImportRow[];
   imported?: number;
+  importedObjects?: number;
+  importedContracts?: number;
+  error?: string;
 }
 
 export function VertraegeTable({
@@ -139,7 +143,7 @@ export function VertraegeTable({
     setImportOpen(false);
     setImportResult(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
-    if (importResult?.imported) router.refresh();
+    if (importResult?.success || importResult?.imported) router.refresh();
   }
 
   const filterLabels: Record<string, string> = {
@@ -368,8 +372,27 @@ export function VertraegeTable({
               </>
             )}
 
+            {/* Erfolg */}
+            {importResult?.success && (
+              <div className="flex flex-col items-center gap-2 py-4 text-center">
+                <CheckCircle className="h-8 w-8 text-green-600" />
+                <p className="font-medium text-green-800">Import erfolgreich!</p>
+                <p className="text-sm text-muted-foreground">
+                  {importResult.importedObjects ?? 0} Objekte und {importResult.importedContracts ?? 0} Verträge importiert.
+                </p>
+              </div>
+            )}
+
+            {/* API-Fehler */}
+            {importResult?.error && (
+              <div className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                {importResult.error}
+              </div>
+            )}
+
             {/* Fehler-Tabelle */}
-            {importResult && importResult.errors.length > 0 && (
+            {importResult && importResult.errors && importResult.errors.length > 0 && (
               <div className="space-y-2">
                 <h3 className="font-medium text-sm flex items-center gap-2 text-red-600">
                   <AlertCircle className="h-4 w-4" />
@@ -397,7 +420,7 @@ export function VertraegeTable({
             )}
 
             {/* Vorschau */}
-            {importResult && importResult.preview.length > 0 && (
+            {importResult && importResult.preview && importResult.preview.length > 0 && (
               <div className="space-y-2">
                 <h3 className="font-medium text-sm flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-600" />
