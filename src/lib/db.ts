@@ -17,7 +17,7 @@ if (process.env.NODE_ENV !== "production") {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ExtArgs = { args: any; query: (args: any) => Promise<any> };
 
-export function getTenantDb(tenantId: string) {
+export function getTenantDb(tenantId: string): PrismaClient {
   return prisma.$extends({
     query: {
       $allModels: {
@@ -72,5 +72,5 @@ export function getTenantDb(tenantId: string) {
         },
       },
     },
-  });
+  }) as unknown as PrismaClient;
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma, getTenantDb } from "@/lib/db";
 import { buildSystemPrompt } from "@/lib/ai/prompts";
@@ -169,7 +170,7 @@ export async function POST(req: NextRequest) {
         nachricht: transkription,
         antwort: vollstaendigeAntwort || null,
         intent: erkannterIntent,
-        kontext: kontext as unknown as Record<string, unknown>,
+        kontext: kontext as unknown as Prisma.InputJsonValue,
       },
     });
 
